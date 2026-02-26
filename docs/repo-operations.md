@@ -12,10 +12,36 @@ Date: 2026-02-26
 - [ ] `origin` remote 설정
 - [ ] 기본 브랜치 확인 (`main`)
 - [ ] 보호 브랜치/PR 규칙 적용 여부 확인
+- [ ] 초기 푸시 (`main`) 완료
 
 기록용:
 - `origin`: (TBD)
 - 배포 방식: 직접 배포 없음 (editor authoring repo)
+
+### Remote Bootstrap Command Template
+
+원격 URL 확정 후 아래 템플릿 사용:
+
+```bash
+cd /Users/baekjiyun/Desktop/WAN/nolquiz-editor
+
+# 최초 설정
+git remote add origin <EDITOR_REMOTE_URL>
+
+# 이미 origin이 있으면 URL 교체
+# git remote set-url origin <EDITOR_REMOTE_URL>
+
+git branch --show-current
+git push -u origin main
+```
+
+확인용:
+
+```bash
+git remote -v
+git status --short --branch
+git log --oneline -3
+```
 
 ## 핵심 역할 (Source of Truth)
 
@@ -57,4 +83,5 @@ node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-
 - publish 실행 명령
 - runtime 타깃 경로
 - 검증 명령 + `pass/fail`
+- 푸시 커밋 해시(`main` 최신 1~2개)
 - 남은 리스크(있으면 1~3줄)
