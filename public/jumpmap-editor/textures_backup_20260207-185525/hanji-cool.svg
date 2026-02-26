@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <pattern id="coolgrain" width="28" height="28" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="4" r="1" fill="#a7b4bf" opacity="0.22"/>
+      <circle cx="12" cy="19" r="0.9" fill="#8b9eac" opacity="0.18"/>
+      <circle cx="22" cy="8" r="0.8" fill="#c1ccd5" opacity="0.2"/>
+      <path d="M2 24 C9 20, 16 26, 24 22" stroke="#7f919f" stroke-width="0.55" opacity="0.14" fill="none"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="#e6edf2"/>
+  <rect width="256" height="256" fill="url(#coolgrain)"/>
+</svg>

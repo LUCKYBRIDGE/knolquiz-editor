@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <radialGradient id="edgeDark" cx="50%" cy="50%" r="70%">
+      <stop offset="68%" stop-color="#f0ddb8"/>
+      <stop offset="100%" stop-color="#c9a87c"/>
+    </radialGradient>
+    <filter id="oldNoise" x="-20%" y="-20%" width="140%" height="140%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" seed="3"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.12"/>
+      </feComponentTransfer>
+    </filter>
+  </defs>
+  <rect width="256" height="256" fill="url(#edgeDark)"/>
+  <rect width="256" height="256" filter="url(#oldNoise)"/>
+</svg>

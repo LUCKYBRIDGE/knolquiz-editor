@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="ice2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d7f2ff"/>
+      <stop offset="100%" stop-color="#9fd1ea"/>
+    </linearGradient>
+    <pattern id="cracks" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M6 8 L20 20 L16 34 L30 48" stroke="#5c8ba7" stroke-width="1.2" opacity="0.35" fill="none"/>
+      <path d="M40 6 L34 20 L46 30 L36 46 L50 58" stroke="#5c8ba7" stroke-width="1" opacity="0.32" fill="none"/>
+      <path d="M10 54 L20 42 L32 44 L42 34" stroke="#dff5ff" stroke-width="1" opacity="0.45" fill="none"/>
+      <circle cx="24" cy="24" r="1" fill="#eefbff" opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#ice2)"/>
+  <rect width="256" height="256" fill="url(#cracks)"/>
+</svg>

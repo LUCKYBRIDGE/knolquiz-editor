@@ -1,0 +1,56 @@
+{
+  "schema": "jumpmap-legacy-play-path-audit",
+  "version": 1,
+  "indexFile": "public/jumpmap-editor/index.html",
+  "scripts": [
+    {
+      "src": "./hitbox-utils.js",
+      "file": "public/jumpmap-editor/hitbox-utils.js",
+      "exists": true
+    },
+    {
+      "src": "./geometry-utils.js",
+      "file": "public/jumpmap-editor/geometry-utils.js",
+      "exists": true
+    },
+    {
+      "src": "./map-io-utils.js",
+      "file": "public/jumpmap-editor/map-io-utils.js",
+      "exists": true
+    },
+    {
+      "src": "./test-physics-utils.js",
+      "file": "public/jumpmap-editor/test-physics-utils.js",
+      "exists": true
+    },
+    {
+      "src": "./game-rule-adapter.js",
+      "file": "public/jumpmap-editor/game-rule-adapter.js",
+      "exists": true
+    },
+    {
+      "src": "./integration-bridge.js",
+      "file": "public/jumpmap-editor/integration-bridge.js",
+      "exists": true
+    },
+    {
+      "src": "./test-runtime.js",
+      "file": "public/jumpmap-editor/test-runtime.js",
+      "exists": true
+    },
+    {
+      "src": "./editor.js",
+      "file": "public/jumpmap-editor/editor.js",
+      "exists": true
+    }
+  ],
+  "summary": {
+    "scriptCount": 8,
+    "existingScriptCount": 8,
+    "missingScriptCount": 0,
+    "findingCount": 0,
+    "countsByKind": {}
+  },
+  "missingScripts": [],
+  "findings": []
+}

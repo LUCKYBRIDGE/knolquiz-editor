@@ -1,0 +1,2293 @@
+# Jumpmap Editor Status Log
+
+Date: 2026-02-08
+
+## Summary
+- 레포 분리(R7 준비) `verify-split` CI 초안 추가 1차(최신, 2026-02-26):
+  - `.github/workflows/repo-split-verify.yml` 추가
+    - `push(main)` / `pull_request`: `verify-fast` (`split-repos --apply --force-merge` + `verify-split --skip-smoke`)
+    - `workflow_dispatch`: 입력값으로 browser E2E 선택 실행
+      - `with_browser_e2e=true`
+      - `browser_e2e_timeout_ms`
+    - browser E2E job에서 `playwright` + `chromium` 임시 설치 후 `verify-split --skip-smoke --with-browser-e2e` 실행
+  - `docs/repo-split-r7-release-checklist.md`
+    - `3-6) CI` 섹션 추가 (워크플로 경로, 기본/수동 트리거 동작, timeout 입력)
+  - `docs/repo-split-r6-handoff.md`
+    - `R7` 시작 추천 항목에 CI 워크플로 사용 경로 추가
+  - 목적:
+    - `R7` 운영 이관 단계에서 fast verify를 기본 자동화하고, browser E2E는 수동 트리거로 유지해 비용/시간을 제어
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000`
+- 레포 분리(R7 준비) 릴리즈/운영 플로우 체크리스트 표준화 1차(최신, 2026-02-26):
+  - `docs/repo-split-r7-release-checklist.md` 추가
+    - 표준 절차 고정:
+      - `edit -> publish -> split apply -> verify`
+    - `R6` 기준선 수치(`24/24`, `17/17`, `pass=37/38/66`)를 운영 체크리스트에 명시
+    - 실패 시 짧은 triage( publish / forbidden path / compat sync / browser E2E ) 추가
+    - `R7` handoff에 포함할 최소 정보(검증 명령, pass/fail, publish 경로, 리스크) 명시
+  - `docs/repo-split-r6-handoff.md`
+    - `R7` 시작 추천 항목에서 위 체크리스트 문서를 표준 플로우로 참조하도록 갱신
+  - 목적:
+    - `R6` 이후 운영 반영 단계에서 publish 누락/검증 누락을 줄이고, 다음 스레드에서도 동일 절차로 실행 가능하게 고정
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000`
+- 레포 분리(R6) handoff 문서 고정(최신, 2026-02-26):
+  - `docs/repo-split-r6-handoff.md` 추가
+    - `R6` 완료 상태(컷오버/auto-recovery/browser E2E 기준) 요약
+    - 검증 기준선(`verify-split --skip-smoke`, `--with-browser-e2e`, headed 포함) 고정
+    - 운영 규칙(editor -> publish -> split apply -> verify) 정리
+    - `R7` 시작 추천 작업(운영 이관/CI/릴리즈 플로우) 정리
+  - 목적:
+    - 스레드/세션 전환 시 `R6` 완료 기준과 다음 단계 우선순위를 짧은 문서 1개로 이어받기 쉽게 만들기
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000`
+- 레포 분리(R6) 종료 기록 + 다음 단계 이관 기준 고정(최신, 2026-02-26):
+  - `docs/jumpmap-editor-phase6-checklist.md`
+    - `0-3` 남은 수동 확인 항목 정리 완료
+      - `운영 시나리오 1회 수동 확인`은 `필요 시` 조건 항목으로 분류하고, 이번 `R6` 종료 기준에서는 waive 처리
+      - 근거: headed browser E2E(`cases=4`) + `legacy` host 패널 UX Playwright E2E assert(telemetry/fallback UI)
+    - `0-4` 종료 기준 섹션에 `R6 종료 준비 기준 충족(2026-02-26)` 기록 추가
+  - 현재 `R6` 종료 기준선(유지):
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` → `pass=37, fail=0`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000` → `pass=38, fail=0`
+    - `node scripts/jumpmap-verify-split.mjs --with-browser-e2e` → `pass=66, fail=0`
+    - `node scripts/jumpmap-verify-split.mjs --with-browser-e2e --browser-e2e-headed --browser-e2e-timeout-ms 30000` → `pass=66, fail=0`
+  - 다음 단계 이관 메모(`R7`/운영 이관):
+    - 실제 운영 동선 spot-check(런처 → 점프맵 → legacy/compat) 1회 권장
+    - 장시간/특정 preset/다인모드 회귀는 별도 운영 검증 범위로 유지
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+- 레포 분리(R6) legacy host 패널 UX 자동검증(E2E) 보강 및 수동 항목 축소(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-legacy-compat-e2e.mjs`
+    - `legacy` host 패널 UI assertion 추가:
+      - `compat-event-row` 텍스트 표시
+      - `compat-events-row`(debug) 표시 + recent events 리스트 존재
+      - `fallback-row` 표시 + `fallback-link`가 `jumpmap-runtime/legacy/compat/` 타깃으로 수렴하는지 확인
+      - `legacyCompatTarget=0` 요청 시 `target-row`/`fallback-link`가 `jumpmap-runtime/legacy/compat/` 타깃으로 수렴하는지 확인
+  - `docs/jumpmap-editor-phase6-checklist.md`
+    - `0-3`의 `legacy host 패널 UX 확인` 항목을 Playwright E2E 대체 검증으로 체크 완료 처리
+    - 남은 수동 항목은 `운영 시나리오 1회 수동 확인(필요 시)` 1개로 축소
+  - 검증:
+    - `node scripts/jumpmap-verify-legacy-compat-e2e.mjs --runtime-dir ../nolquiz-runtime`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+- 레포 분리(R6) headed browser E2E 검증 1회 실행 확인(최신, 2026-02-26):
+  - `node scripts/jumpmap-verify-split.mjs --with-browser-e2e --browser-e2e-headed --browser-e2e-timeout-ms 30000` 실행
+  - 결과:
+    - `legacy compat browser e2e` PASS (`cases=4`)
+    - `local route smoke` PASS 포함
+    - 최종 `pass=66, fail=0`
+  - `docs/jumpmap-editor-phase6-checklist.md`
+    - `0-3`의 headed browser E2E 항목 체크 완료 처리
+    - `0-2` 최신 자동검증 기준선에 headed 실행 결과 추가
+  - 효과:
+    - `R6 종료 준비`의 최우선 수동 항목(헤디드 브라우저 E2E 실행)을 완료하여 잔여 수동 항목 범위를 UX 확인/운영 시나리오 점검으로 축소
+- 레포 분리(R6) 종료 준비 체크리스트 정리 1차(최신, 2026-02-26):
+  - `docs/jumpmap-editor-phase6-checklist.md`
+    - 상단에 `R6 종료 준비 상태` 섹션 추가 (`0)` 구간)
+    - 자동검증으로 완료된 항목(컷오버/auto-recovery/helper·inject·pipeline/E2E/hidden dependency 계약)과 남은 수동 확인 항목을 분리 기록
+    - 최신 자동검증 기준선 고정:
+      - `verify-split --skip-smoke` (`pass=37, fail=0`)
+      - `verify-split --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000` (`pass=38, fail=0`)
+      - `verify-split --with-browser-e2e` (`pass=66, fail=0`)
+  - 효과:
+    - `R6` 종료 전 필요한 남은 수동 확인 항목만 명확히 추적 가능
+    - 기존 Phase6 수동 점검표를 유지하면서 분리 컷오버 종료 기준을 같은 문서에서 관리 가능
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+- 레포 분리(R6) legacy compat 동적 의존 계약(snapshot) 감사 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-audit-legacy-compat-assets.mjs`
+    - 정적 참조 감사 결과와 별도로 `dynamicDependencyContracts` 섹션 추가 (snapshot `version: 2`)
+    - `public/quiz/data`, `public/quiz/nets`를 동적 의존 계약 디렉터리로 명시 inventory/snapshot화
+    - `_backup-*`, `.DS_Store`는 계약 inventory에서 제외 (노이즈/임시 백업 제외)
+    - summary에 `dynamicDependencyContractCount`, `dynamicDependencyFileCount`, `dynamicDependencyMissingDirCount` 추가
+  - `docs/contracts/legacy-compat-asset-audit.json`
+    - 동적 의존 계약 snapshot 갱신 (`contracts=2`, `files=489`, `missingDirs=0`)
+  - 효과:
+    - 기존 정적 참조 감사가 놓치는 `quiz/data`, `quiz/nets` hidden dependency를 계약 레벨에서 명시적으로 추적 가능
+    - sync/split 검증과 함께 사용할 때 동적 의존 누락 회귀를 더 빨리 식별 가능
+  - 검증:
+    - `node --check scripts/jumpmap-audit-legacy-compat-assets.mjs`
+    - `node scripts/jumpmap-audit-legacy-compat-assets.mjs --write`
+    - `node scripts/jumpmap-audit-legacy-compat-assets.mjs --check`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (PASS 유지)
+- 레포 분리(R6) verify-split 브라우저 E2E 디버그 옵션 pass-through 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-split.mjs`
+    - `--browser-e2e-headed` 추가 (`--with-browser-e2e`와 함께 사용 시 E2E 스크립트에 `--headed` 전달)
+    - `--browser-e2e-timeout-ms <ms>` 추가 (`--with-browser-e2e`와 함께 사용 시 E2E 스크립트에 `--timeout-ms` 전달)
+    - 기본값은 기존과 동일(브라우저 E2E 미실행 / headless / E2E 기본 timeout 사용)
+  - 효과:
+    - `verify-split` 단일 엔트리포인트에서 browser E2E 디버깅(헤드드 실행, timeout 완화) 제어 가능
+  - 검증:
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000`
+- 레포 분리(R6) legacy compat 퀴즈 동적 자산(hidden dependency) 보강 + E2E 상호작용 복구 1차(최신, 2026-02-26):
+  - E2E 상호작용 검증 중 `quiz_gateway_error`를 재현/확인
+    - 원인: runtime compat canary asset sync(`jumpmap-sync-runtime-legacy-compat-assets`)가 동적 의존인 `quiz/data`, `quiz/nets`를 복제하지 않아 `ensureQuizResources()`가 실패
+  - `scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs`
+    - `COMPAT_PUBLIC_DIR_REL_PATHS`에 `quiz/data`, `quiz/nets` 추가
+    - `quiz/nets` 백업 디렉터리 복제를 피하도록 `_backup-*` 디렉터리 skip 추가
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - runtime required/smoke에 대표 경로 추가:
+      - `compat/quiz/data/quiz-settings.default.json`
+      - `compat/quiz/nets/cube-01.svg`
+  - `scripts/jumpmap-verify-legacy-compat-e2e.mjs`
+    - 상호작용 케이스(`auto-start test mode → restart → quiz panel roundtrip`)를 유지한 상태에서 재검증 PASS
+  - 검증:
+    - `node scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs`
+    - `node scripts/jumpmap-verify-legacy-compat-e2e.mjs --runtime-dir ../nolquiz-runtime` (`cases=4`)
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e` (PASS 유지)
+- 레포 분리(R6) legacy compat 브라우저 E2E 상호작용 검증 2차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-legacy-compat-e2e.mjs`
+    - iframe 내부 compat 문서의 실제 test mode/quiz UI 상호작용 검증 케이스 추가
+    - 추가 검증 범위(1 케이스):
+      - `legacy` 기본 경로에서 auto-start test mode 진입 확인 (`#test-overlay`, `.test-view`)
+      - `#test-restart` 클릭 후 start guide 재표시로 재시작 경로 확인
+      - 퀴즈 패널 라운드트립 확인 (열기 → 보기 선택지 렌더 → 답안 제출 → 결과/피드백 → 맵으로 복귀)
+    - 결과적으로 browser E2E 케이스 수 `3 -> 4`로 확대
+  - 검증:
+    - `node --check scripts/jumpmap-verify-legacy-compat-e2e.mjs`
+    - `node scripts/jumpmap-verify-legacy-compat-e2e.mjs --runtime-dir ../nolquiz-runtime` (`cases=4`, local `playwright` + `chromium` 설치 후)
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e` (PASS 유지)
+- 레포 분리(R6) verify-split 선택형 브라우저 E2E 옵션 통합 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-split.mjs`
+    - `--with-browser-e2e` 옵션 추가 (기본값 off)
+    - 켜면 `scripts/jumpmap-verify-legacy-compat-e2e.mjs`를 split runtime(`nolquiz-runtime`) 대상으로 추가 실행
+    - 기본 `verify-split` 실행시간/의존성(Playwright 미설치 환경) 영향 없이, 필요 시 브라우저 E2E까지 한 번에 확인 가능
+  - 효과:
+    - CI/로컬에서 상황에 따라 `route smoke + helper/inject/pipeline`만 빠르게 돌리거나,
+    - `legacy compat` 브라우저 E2E까지 포함한 확장 검증을 같은 엔트리포인트에서 실행 가능
+  - 검증:
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e` (local `playwright` + `chromium` 설치 후)
+- 레포 분리(R6) legacy compat 브라우저 E2E 자동검증 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-legacy-compat-e2e.mjs` 추가
+    - split runtime(`nolquiz-runtime`)에서 `scripts/jumpmap-local-serve.mjs`로 로컬 서버 기동 후 Playwright(Chromium) 헤드리스 검증 수행
+    - 검증 범위(`3` 케이스):
+      - `legacy` 기본 경로가 iframe 내부에서 runtime-owned compat로 로드되는지
+      - `legacyCompatTarget=0` direct fallback 요청이 split runtime에서 compat auto-recovery되는지
+      - `compat` 직접 경로의 `legacyCompatSource=editor&legacyCompatAssetBase=editor` 요청이 runtime-owned로 auto-recovery되는지
+    - host panel(`compat-mode-row`, telemetry event)와 iframe/compat 문서의 runtime compat marker(`__JUMPMAP_RUNTIME_LEGACY_COMPAT_TARGET__`) / runtime base href를 함께 확인
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor split에 E2E 검증 스크립트 포함/required 추가
+  - `scripts/jumpmap-verify-split.mjs`
+    - editor syntax 대상에 E2E 검증 스크립트 추가 (기본 verify 체인의 route/helper/inject 검증은 그대로 유지)
+  - 검증:
+    - `node --check scripts/jumpmap-verify-legacy-compat-e2e.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-legacy-compat-e2e.mjs --runtime-dir ../nolquiz-runtime` (`cases=3`, local `playwright` + `chromium` 설치 후)
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (PASS 유지)
+- 레포 분리(R6) legacy compat pipeline 자동검증 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-legacy-compat-pipeline.mjs` 추가
+    - split runtime(`nolquiz-runtime`)의 `legacy/app.js`, `compat/app.js` helper를 Node에서 import(임시 `.mjs` 복사본 방식)
+    - 검증 범위(`6` 케이스):
+      - legacy host target mode/fallback probe 해석
+      - compat source/asset-base 해석 + editor fallback auto-recovery
+      - runtime-owned source snapshot + `injectCompatHead(...)` 변환 조합(pipeline) 검증
+  - `scripts/jumpmap-verify-split.mjs`
+    - editor syntax 대상에 `jumpmap-verify-legacy-compat-pipeline.mjs` 추가
+    - `legacy compat pipeline check` 단계 추가 (split runtime 대상 실행)
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor split에 pipeline 검증 스크립트 포함/required 추가
+  - 효과:
+    - helper 단위 검증(fallback/inject)에 더해, legacy host → compat → inject의 핵심 조합 경로를 split runtime 복사본 기준으로 자동 검증 가능
+  - 검증:
+    - `node --check scripts/jumpmap-verify-legacy-compat-pipeline.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-legacy-compat-pipeline.mjs --runtime-dir ../nolquiz-runtime` (`cases=6`)
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=36, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=62, fail=0`, local route smoke 포함)
+- 레포 분리(R6) legacy compat inject 로직 자동검증 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - `injectCompatHead` export 추가 (split runtime 복사본 helper 검증용)
+  - `scripts/jumpmap-verify-legacy-compat-inject-logic.mjs` 추가
+    - split runtime(`nolquiz-runtime`)의 `compat/app.js`를 Node에서 import(임시 `.mjs` 복사본 방식)
+    - runtime-owned source snapshot HTML + `injectCompatHead(...)` 변환 결과를 `5`개 케이스로 검증
+    - 검증 범위:
+      - marker/base/runtime script 주입
+      - runtime-owned source snapshot inject 호환성
+      - `<head>` 존재/미존재 fallback wrapper 경로
+  - `scripts/jumpmap-verify-split.mjs`
+    - editor syntax 대상에 새 inject-logic 검증 스크립트 추가
+    - monorepo 단계에 `legacy compat inject logic check` 추가 (split runtime 대상 실행)
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor split에 새 inject-logic 검증 스크립트 포함/required 추가
+  - 효과:
+    - helper fallback 판단 자동검증에 더해, `compat`의 HTML inject 변환 핵심 로직까지 split runtime 복사본 기준으로 자동 검증 가능
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check scripts/jumpmap-verify-legacy-compat-inject-logic.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-legacy-compat-inject-logic.mjs --runtime-dir ../nolquiz-runtime` (`cases=5`)
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=34, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=60, fail=0`, local route smoke 포함)
+- 레포 분리(R6) fallback logic 자동검증 warning 정리 + fallback 정책 문서화 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs`
+    - split runtime 브라우저 모듈 import 시 `.js` 직접 import 대신 임시 `.mjs` 복사본 import로 변경
+    - 효과: `MODULE_TYPELESS_PACKAGE_JSON` warning 없이 fallback logic 자동검증 실행 가능
+  - `docs/contracts/legacy-compat-runtime-owned-cutover-plan.md`
+    - 컷오버 후 fallback 정책 섹션 추가
+    - `legacyCompatTarget=0`, `legacyCompatSource=editor`, `legacyCompatAssetBase=editor`를 split runtime 기준 dev/monorepo 호환용으로 명시
+    - split runtime에서는 runtime-owned compat로 auto-recovery 유지 정책 명시
+  - 검증:
+    - `node --check scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs`
+    - `node scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs --runtime-dir ../nolquiz-runtime` (warning 없이 `cases=9`)
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=31, fail=0`)
+- 레포 분리(R6) legacy compat fallback 로직 자동검증 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/app.js`
+    - Node import-safe를 위해 URL helper(`fallbackHref`) 적용
+    - pure helper `applyLegacyDirectFallbackProbe(...)` 추가/사용
+    - browser auto-start를 DOM 존재 조건으로 guard + helper exports 추가
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - Node import-safe URL helper(`fallbackHref`) 적용
+    - pure helper `applyEditorFallbackAvailabilityProbe(...)` 추가/사용
+    - browser auto-start guard + helper exports 추가
+  - `scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs` 추가
+    - split runtime 복사본(`nolquiz-runtime`)의 `legacy/app.js`, `compat/app.js`를 Node에서 import
+    - fallback mode parsing/URL builder/editor-path auto-recovery helper 동작을 `9`개 케이스로 검증
+  - `scripts/jumpmap-verify-split.mjs`
+    - editor syntax 대상에 새 검증 스크립트 추가
+    - monorepo 단계에 `legacy compat fallback logic check` 추가 (split runtime 복사본 대상 실행)
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor split에 새 검증 스크립트 포함/required 추가
+  - 효과:
+    - 수동 브라우저 검증 전에도 fallback 판단 로직의 핵심 분기(특히 split runtime에서의 editor fallback 자동 복귀)를 자동 검증 가능
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs`
+    - `node scripts/jumpmap-verify-legacy-compat-fallback-logic.mjs --runtime-dir ../nolquiz-runtime`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=31, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=57, fail=0`, local route smoke 포함)
+    - 참고: Node import 시 `MODULE_TYPELESS_PACKAGE_JSON` warning 출력(동작 영향 없음)
+- 레포 분리(R6) runtime split 컷오버 후 fallback 표면 정리 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/index.html`
+    - host panel에 `compat-mode-row` 추가 (요청 모드/실제 적용 모드 표시용)
+  - `public/jumpmap-runtime/legacy/app.js`
+    - compat telemetry 요약(`urls-ready`)에 requested/effective 모드 mismatch 표시 강화
+    - `editor-path-unavailable-fallback` 이벤트 요약 및 status 반영
+    - direct fallback(`legacyCompatTarget=0`)이 runtime split에서 불가할 때 compat auto-fallback 상태/안내 문구를 더 명확히 표시
+    - compat panel 문구를 “direct fallback은 `/jumpmap-editor` 존재 시(dev-only)”로 정리
+  - `scripts/jumpmap-verify-split.mjs`
+    - local route smoke에 debug query 경로 추가:
+      - `/jumpmap-runtime/legacy/?legacyCompatTarget=0&legacyCompatDebug=1`
+      - `/jumpmap-runtime/legacy/compat/?legacyCompatSource=editor&legacyCompatAssetBase=editor&legacyCompatDebug=1`
+  - 효과:
+    - runtime split 컷오버 이후 `editor fallback` 요청이 자동 복귀될 때 host panel/telemetry에서 원인과 적용 모드를 더 쉽게 확인 가능
+    - debug query 경로 회귀가 split smoke에서 자동 감지됨
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=30, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=56, fail=0`, local route smoke 포함)
+- 레포 분리(R6) runtime split용 editor fallback 안전화 1차 (자동 감지 후 runtime-owned로 복귀, 최신 2026-02-26):
+  - `public/jumpmap-runtime/legacy/app.js`
+    - `legacyCompatTarget=0` direct fallback 요청 시 `../../jumpmap-editor/`를 probe(fetch) 후
+      - 존재하면 기존 direct fallback 유지 (monorepo/dev 호환)
+      - 부재(예: split runtime)면 compat로 자동 복귀(`compat-auto-fallback`)
+    - compat panel 안내 문구를 “direct fallback은 `/jumpmap-editor` 존재 시(dev-only)”로 보정
+    - compat telemetry 요약에 `editor-path-unavailable-fallback` 이벤트 표시 지원
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - `legacyCompatSource=editor` 또는 `legacyCompatAssetBase=editor` 요청 시 `../../jumpmap-editor/index.html` probe(fetch)
+      - 경로 부재면 해당 모드만 `runtime-owned`로 자동 대체
+      - `editor-path-unavailable-fallback` telemetry 이벤트 전송
+    - 목적: runtime split에서 남아있는 editor fallback query가 즉시 실패하지 않도록 안전 복귀
+  - 효과:
+    - monorepo/dev에서는 editor fallback 유지
+    - `nolquiz-runtime` split에서는 editor 경로 부재를 감지하고 runtime-owned compat로 자동 복귀
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=30, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=54, fail=0`, local route smoke 포함)
+- 레포 분리(R6) runtime split에서 `public/jumpmap-editor` 제거 컷오버 1차 + prune/forbidden 검증 추가(최신, 2026-02-26):
+  - `scripts/jumpmap-split-repos.mjs`
+    - runtime 복제 목록(`RUNTIME_PATHS`)에서 `public/jumpmap-editor` 제거
+    - runtime required 경로에서 `public/jumpmap-editor/index.html` 제거
+    - `RUNTIME_PRUNE_PATHS = ['public/jumpmap-editor']` 추가
+    - `--apply` 시 runtime 타깃에 남아 있던 stale `public/jumpmap-editor`를 명시적으로 제거(prune)
+    - required 검증에 `runtime forbidden absent` 체크 추가
+  - `scripts/jumpmap-verify-split.mjs`
+    - runtime required 목록에서 `public/jumpmap-editor/index.html` 제거
+    - `RUNTIME_FORBIDDEN = ['public/jumpmap-editor']` 추가
+    - required paths 섹션에 `runtime forbidden absent 1/1` 검증 추가
+    - local route smoke에서 기존 `runtime /jumpmap-editor/` 200 확인 제거
+    - 대신 `runtime /jumpmap-editor/ (removed)` 비-2xx(현재 404) 음수 smoke 검증 추가
+  - 효과:
+    - `nolquiz-runtime` split 결과물에서 `public/jumpmap-editor` 물리 복제가 제거됨
+    - 이전 스캐폴드에 남아 있던 stale 경로도 `split-repos --apply`로 자동 정리됨
+    - runtime split 검증 기준이 runtime-owned compat 자산 기준으로 정렬됨
+  - 검증:
+    - `node --check scripts/jumpmap-split-repos.mjs`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+      - runtime files `8175`, bytes `74.85 MB`
+      - runtime required `22/22`, runtime forbidden absent `1/1`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=30, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=54, fail=0`, local route smoke 포함, `runtime /jumpmap-editor/` = `404`)
+- 레포 분리(R6) compat 기본값을 runtime-owned source+asset-base로 전환 + editor 명시 fallback 유지(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - `legacyCompatSource` 기본값: `editor` -> `runtime-owned`
+    - `legacyCompatAssetBase` 기본값: `editor` -> `runtime-owned`
+    - 명시 fallback query 유지:
+      - `legacyCompatSource=editor`
+      - `legacyCompatAssetBase=editor`
+      - (`0|false|off|no` 별칭 포함)
+  - `scripts/jumpmap-verify-split.mjs`
+    - local route smoke에 compat editor 명시 fallback query 경로 추가:
+      - `/jumpmap-runtime/legacy/compat/?legacyCompatSource=editor&legacyCompatAssetBase=editor`
+  - 효과:
+    - compat 기본 경로가 runtime-owned canary source/asset-base를 사용하도록 전환됨
+    - query로 기존 editor 기반 compat 모드로 즉시 롤백 가능
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=29, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=53, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat runtime-owned 최소 자산 세트 실제 복제 + sync/check 자동화 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs` 추가
+    - `compat` canary mirror(`public/jumpmap-runtime/legacy/compat`)로 최소 자산 세트 동기화:
+      - `runtime-owned/` 아래 핵심 `jumpmap-editor` 파일 + `textures/`
+      - `compat/quiz/core/*`, `compat/shared/*`, `compat/quiz_background/Geumgangjeondo.jpg`
+      - `compat/quiz_plate/*`, `compat/quiz_sejong/*`
+    - `--check`, `--dry-run` 지원
+    - 주의: `runtime-owned/index.html`은 별도 source snapshot으로 유지(이 스크립트가 덮어쓰지 않음)
+  - `scripts/jumpmap-verify-split.mjs`
+    - `legacy compat canary asset sync check` 단계 추가 (monorepo 기준 `--check`)
+    - local route smoke에 대표 canary 미러 자산 경로 추가:
+      - `runtime-owned/editor.js`
+      - `runtime-owned/textures/hanji.svg`
+      - `compat/quiz/core/engine.js`
+      - `compat/shared/local-game-records.js`
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor split에 새 sync 스크립트 포함
+    - runtime required 경로에 대표 canary 미러 자산 경로 추가
+  - 효과:
+    - `legacyCompatSource=runtimeOwned&legacyCompatAssetBase=runtimeOwned` canary가 참조할 최소 자산 세트가 실제로 runtime compat 경로에 존재
+    - split 검증 체인에서 canary 자산 미러 드리프트/누락 자동 감지 가능
+  - 검증:
+    - `node --check scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs`
+    - `node scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs --dry-run` (plan `122 files`)
+    - `node scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs`
+    - `node scripts/jumpmap-sync-runtime-legacy-compat-assets.mjs --check`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=27, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=50, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat runtime-owned asset-base canary 분기 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - query flag `legacyCompatAssetBase=runtimeOwned` 지원 추가
+    - compat injected `<base href>` / `__JUMPMAP_EDITOR_RUNTIME_BASE_HREF__`를 runtime-owned source 경로(`./runtime-owned/`)로 전환하는 canary 분기 도입
+    - `legacyCompatSource=runtimeOwned`와 조합 가능 (source-only / source+asset-base canary 분리 검증)
+    - telemetry(`urls-ready`, `fetch-start`, `fetch-ok`)에 `assetBaseMode` 포함
+  - `public/jumpmap-runtime/legacy/app.js`
+    - host compat telemetry 요약에 `sourceMode` / `assetBaseMode` 표시 보강 (수동 검증 관측성 개선)
+  - `scripts/jumpmap-verify-split.mjs`
+    - local route smoke에 canary query 경로 추가:
+      - `/jumpmap-runtime/legacy/compat/?legacyCompatSource=runtimeOwned&legacyCompatAssetBase=runtimeOwned`
+  - 효과:
+    - 다음 단계에서 runtime-owned 자산 복제 후 "asset base 전환"을 query flag로 독립 검증할 수 있는 경로 확보
+    - 기본 compat 동선은 유지, fallback(`legacyCompatTarget=0`)도 그대로 유지
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=25, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=44, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat runtime-owned source canary 분기 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - query flag `legacyCompatSource=runtimeOwned` 지원 추가
+    - compat target이 `jumpmap-editor/index.html` 대신 runtime 내부 source snapshot(`./runtime-owned/index.html`)를 fetch하는 canary 분기 도입
+    - 현재 단계에서는 자산 base(`<base href>`)는 기존 `../../jumpmap-editor/` 유지 (동작 리스크 최소화)
+    - 효과: "HTML source fetch 경로"를 먼저 runtime 내부로 이동시켜 다음 단계(자산까지 runtime-owned화) 전환 리스크를 분리
+  - `public/jumpmap-runtime/legacy/compat/runtime-owned/index.html` 추가
+    - `public/jumpmap-editor/index.html` 기반 seed snapshot (canary source)
+    - snapshot marker comment 추가
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - runtime required 경로에 `public/jumpmap-runtime/legacy/compat/runtime-owned/index.html` 추가
+    - local route smoke에 다음 경로 추가:
+      - `/jumpmap-runtime/legacy/compat/?legacyCompatSource=runtimeOwned`
+      - `/jumpmap-runtime/legacy/compat/runtime-owned/`
+  - 효과:
+    - compat canary의 HTML source를 runtime 내부 경로로 실험할 수 있는 단계 도달
+    - 기본 compat 동선은 그대로 유지되고, source-only canary를 query flag로 분리 가능
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node --check scripts/jumpmap-split-repos.mjs`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=25, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=43, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat runtime-owned 최소 의존 세트 설계/복제 목록 문서화 1차(최신, 2026-02-26):
+  - `docs/contracts/legacy-compat-runtime-owned-cutover-plan.md` 추가
+    - `docs/contracts/legacy-compat-asset-audit.json` snapshot 기준으로 compat 의존 자산을 컷오버 관점에서 분류:
+      - 이미 runtime-owned 유지 대상 (`public/quiz`, `public/shared`, `public/quiz_background`)
+      - editor path 결합 파일 이관 후보 1차 (`public/jumpmap-editor/*` 11개)
+      - prefix hint 기반 디렉터리 이관 후보 (`public/jumpmap-editor/textures`, `public/quiz_plate`, `public/quiz_sejong`)
+    - 다음 컷오버 단계(compat fetch 대상 runtime-owned index 전환 → runtime split에서 `public/jumpmap-editor` 제거) 구현 순서 제시
+  - 효과:
+    - 다음 작업에서 "무엇을 먼저 옮길지"를 snapshot 기반으로 고정해 스레드 handoff 시 컨텍스트 손실 감소
+    - `public/jumpmap-editor` 제거 전 최소 복제 목록의 기준선 확보
+  - 검증:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=25, fail=0`)
+- 레포 분리(R6) compat 의존 자산 인벤토리 감사 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-audit-legacy-compat-assets.mjs` 추가
+    - `public/jumpmap-editor/index.html` 기준 HTML/JS/CSS 로컬 참조를 정적 재귀 스캔해 compat 의존 자산 inventory snapshot 생성/검증
+    - `--write`, `--check` 지원
+    - 목적: `public/jumpmap-editor` 제거 전, compat 경로가 실제로 기대하는 자산 범위(특히 `public/quiz`, `public/shared`)를 수치/목록으로 고정
+  - `docs/contracts/legacy-compat-asset-audit.json` 추가 (snapshot)
+    - 1차 요약: `html=9`, `js=16`, `css=0`, `prefixHints=6`, `uniqueTargets=19`, `missing=0`
+    - top-level buckets:
+      - `public/jumpmap-editor=11`
+      - `public/quiz=5`
+      - `public/shared=2`
+      - `public/quiz_background=1`
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - editor split 복제/required/syntax 대상에 새 감사 스크립트 + snapshot 포함
+    - `verify-split`에 `legacy compat asset audit` 단계 추가
+    - 주의: 이 snapshot은 runtime-owned compat 의존까지 포함하므로 `verify-split`에서는 split editor가 아니라 monorepo(`projectRoot`) 기준으로 `--check` 수행
+  - 효과:
+    - 다음 단계(runtime-owned 최소 의존 세트 설계/이관)에서 제거 후보와 유지 후보를 정량적으로 추적 가능
+    - split 검증 체인에서 snapshot 드리프트 자동 감지 가능
+  - 검증:
+    - `node --check scripts/jumpmap-audit-legacy-compat-assets.mjs`
+    - `node scripts/jumpmap-audit-legacy-compat-assets.mjs --write`
+    - `node scripts/jumpmap-audit-legacy-compat-assets.mjs --check`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=25, fail=0`)
+- 레포 분리(R6) 런타임 legacy host compat 기본 전환 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/app.js`
+    - legacy host 기본 target을 direct editor → compat target으로 전환 (`legacyCompatTarget` 미지정 시 compat 사용)
+    - `legacyCompatTarget=0|false|no|off`일 때 direct editor fallback 강제
+    - `legacyCompatTarget=1`은 compat 명시 사용으로 유지
+    - host 상태 문구/telemetry 안내에 fallback query (`legacyCompatTarget=0`) 힌트 반영
+  - `scripts/jumpmap-verify-split.mjs`
+    - local route smoke에 fallback query 경로 추가:
+      - `/jumpmap-runtime/legacy/?legacyCompatTarget=0`
+  - 효과:
+    - 기본 사용자 동선을 runtime-owned compat host/target 경로로 전환 (컷오버 1차)
+    - direct editor target은 query 기반 fallback으로 즉시 우회 가능
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=23, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=39, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat canary 수동검증 진단 로깅 보강 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/index.html`, `public/jumpmap-runtime/legacy/app.js`
+    - compat canary 선택 시 host panel에 `compat event` 상태 줄 추가
+    - `legacyCompatDebug=1` query flag로 recent compat events 리스트 표시(기본은 최신 이벤트 1줄만 표시)
+    - 목적: 수동 canary 검증 중 "fetch 실패 / inject 실패 / editor window error" 단계 식별을 빠르게 하기 위함
+  - `public/jumpmap-runtime/legacy/compat/app.js`
+    - parent(host iframe)로 단계별 telemetry `postMessage` 전송 추가:
+      - `start`, `urls-ready`, `fetch-start`, `fetch-ok`, `inject-ready`, `fetch-error`, `inject-apply-failed`
+    - editor HTML에 주입되는 compat head script에 telemetry 추가:
+      - `compat-head-injected`, `compat-dom-content-loaded`, `compat-window-load`
+      - `compat-window-error`, `compat-unhandledrejection`
+    - 효과:
+      - runtime host UI에서 compat canary의 진행 단계/오류 지점을 바로 확인 가능
+      - 다음 단계의 수동 canary 검증(브라우저) 결과 수집 품질 개선
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=23, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=38, fail=0`, local route smoke 포함)
+- 레포 분리(R6) compat canary query smoke 검증 보강 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-verify-split.mjs`
+    - local route smoke에 `legacyCompatTarget=1` query 경로 추가:
+      - `/jumpmap-runtime/legacy/?legacyCompatTarget=1`
+      - `/jumpmap-runtime/legacy/compat/?legacyCompatTarget=1`
+    - 레거시/compat host HTML에 대한 최소 마커(`legacy-frame`, `status-text`, `src="./app.js"`) 검증 추가
+    - 목적: canary opt-in URL이 split runtime 로컬 서버에서 200 응답 + 기대 호스트 문서 구조를 유지하는지 자동 확인
+  - 효과:
+    - 기존 smoke가 놓치던 canary query 경로를 검증 체인에 포함
+    - 수동 브라우저 검증 전, 경로/정적 호스트 문서 회귀를 자동으로 빠르게 감지 가능
+  - 검증:
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=23, fail=0`)
+    - `node scripts/jumpmap-verify-split.mjs` (`pass=38, fail=0`, local route smoke 포함)
+- 레포 분리(R6) 런타임 레거시 compat target canary 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/compat/index.html`, `public/jumpmap-runtime/legacy/compat/app.js` 추가
+    - runtime-owned canary compat target 경로 도입: `/jumpmap-runtime/legacy/compat/`
+    - `jumpmap-editor/index.html`를 fetch 후 `<base href="../../jumpmap-editor/">` + runtime compat marker/asset base 힌트를 주입해 호환 로드
+    - 목적: `jumpmap-editor` HTML을 runtime 경로에서 실행 가능한지 canary 검증
+  - `public/jumpmap-runtime/legacy/app.js`
+    - query flag `legacyCompatTarget=1`일 때 canary compat target iframe 로드
+    - 기본값은 기존 direct editor target 유지(안전 기본값)
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - runtime required/syntax/smoke 검증에 `legacy/compat` 경로 추가
+  - 효과:
+    - 기본 사용자 동선을 바꾸지 않고 compat target canary를 선택적으로 검증 가능
+    - 다음 단계(기본 target 전환) 전에 runtime-owned target 실행 가능성 실험 기반 확보
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node --check public/jumpmap-runtime/legacy/compat/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=23, fail=0`)
+- 레포 분리(R6) 테스트 런타임 URL 결합 base-aware 전환 1차(최신, 2026-02-26):
+  - `public/jumpmap-editor/test-runtime.js`
+    - `window.location.href` 기반 상대 URL 결합 5개를 `resolveEditorRuntimeAssetUrl(...)` helper로 치환
+    - helper는 우선순위로 base를 결정:
+      - `window.__JUMPMAP_EDITOR_RUNTIME_BASE_HREF__` (옵션)
+      - 로드된 `test-runtime.js` script src 기준 디렉터리
+      - `document.baseURI`
+    - 효과: compat target/iframe 호스트 경로에서도 자산 URL 계산이 page URL에 덜 의존하도록 정리
+  - `docs/contracts/legacy-play-path-audit.json` snapshot 갱신
+    - 감사 결과: `scripts=8`, `findings=0`, `kinds={}` (이전 blocker `10`건 제거)
+  - 효과:
+    - `runtime-owned compat target` 전환을 막던 1차 경로 결합 blocker(감사 기준)를 제거
+    - 다음 단계에서 canary compat target 전환 실험 가능성 증가
+  - 검증:
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-audit-legacy-play-paths.mjs --write`
+    - `node scripts/jumpmap-audit-legacy-play-paths.mjs --check`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=22, fail=0`)
+- 레포 분리(R6) 레거시 플레이 경로 결합 감사 자동화 1차(최신, 2026-02-26):
+  - 배경(컷오버 blocker 확인):
+    - `runtime-owned compat target` 기본 전환 검토 중, `public/jumpmap-editor/test-runtime.js`에 `new URL(..., window.location.href)` 기반 상대경로 계산이 다수 존재해 즉시 전환 리스크 확인
+    - 현재 단계에서는 안전한 전환을 위해 경로 결합 지점 snapshot/검증 자동화를 먼저 추가
+  - `scripts/jumpmap-audit-legacy-play-paths.mjs` 추가
+    - `public/jumpmap-editor/index.html`의 로드 스크립트 목록 추출
+    - 스크립트 내 `window.location.href` / `relative new URL(..., window.location.href)` 사용 라인 감사
+    - `--write` snapshot 생성, `--check` snapshot 비교(불일치 시 exit 1)
+  - `docs/contracts/legacy-play-path-audit.json` 추가
+    - 현재 기준 snapshot 고정 (`scripts=8`, `findings=10`)
+    - 발견 유형:
+      - `relative-new-url-window-location = 5`
+      - `window-location-href = 5`
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - editor 복제/required 대상에 감사 스크립트 + snapshot 파일 포함
+    - verify에 `legacy play path audit` 단계 추가(`--check`)
+  - 효과:
+    - compat target 전환 전에 경로 결합 증가/변경을 자동 감지할 수 있어 다음 단계 리스크 감소
+    - 컨텍스트(hand-off)에서 "왜 바로 target 전환이 어려운지" 근거를 코드/스냅샷으로 유지
+  - 검증:
+    - `node --check scripts/jumpmap-audit-legacy-play-paths.mjs`
+    - `node scripts/jumpmap-audit-legacy-play-paths.mjs --write`
+    - `node scripts/jumpmap-audit-legacy-play-paths.mjs --check`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=22, fail=0`)
+- 레포 분리(R6) 런타임 레거시 iframe 호스트 전환 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/index.html`, `public/jumpmap-runtime/legacy/app.js`
+    - 기존 `window.location.replace(...)` 직접 리다이렉트 방식 제거
+    - runtime 경로(`/jumpmap-runtime/legacy/`)에 머무르는 iframe 호스트 방식으로 전환
+    - 내부 iframe target은 현재 단계에서 `../../jumpmap-editor/?launchMode=play...`를 사용 (호환 유지)
+    - 로드 상태/타깃 URL/새 탭 fallback 링크를 호스트 UI에서 제공
+  - 효과:
+    - 사용자 URL/진입 경로를 runtime 내부에 고정해 향후 레거시 구현 대체 시 호출자 수정 최소화
+    - `jumpmap-editor` 의존이 “페이지 이동”에서 “호스트 내부 iframe 의존”으로 축소
+  - 검증:
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=20, fail=0`)
+- 레포 분리(R6) 레거시 물리 유틸 동기화 자동검증 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-sync-runtime-legacy-physics.mjs` 추가
+    - source=`public/jumpmap-editor/test-physics-utils.js`
+    - target=`public/shared/legacy/test-physics-utils.js` (또는 `--runtime-repo <dir>` 대상)
+    - `--check` 모드에서 source/target 내용/해시 일치 여부 검증 (불일치 시 exit 1)
+    - sync 모드에서 target 자동 갱신
+  - `scripts/jumpmap-split-repos.mjs`
+    - editor 스캐폴드 복제/required 대상에 `scripts/jumpmap-sync-runtime-legacy-physics.mjs` 포함
+  - `scripts/jumpmap-verify-split.mjs`
+    - editor syntax 검증 대상에 동기화 스크립트 추가
+    - `legacy physics sync check` 단계 추가:
+      - editor 레포에서 `--runtime-repo <runtimeDir> --check` 실행해 runtime shared 복제본 드리프트 자동 검출
+  - 효과:
+    - runtime shared 레거시 물리 유틸 스냅샷 드리프트를 split 검증에서 자동 감지 가능
+    - 수동 복제 누락으로 인한 네이티브 디버그/비교 경로 회귀 리스크 감소
+  - 검증:
+    - `node --check scripts/jumpmap-sync-runtime-legacy-physics.mjs`
+    - `node scripts/jumpmap-sync-runtime-legacy-physics.mjs --check`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=20, fail=0`)
+- 레포 분리(R6) 레거시 물리 유틸 shared 복제 경로 1차(최신, 2026-02-26):
+  - `public/shared/legacy/test-physics-utils.js` 추가
+    - 소스: `public/jumpmap-editor/test-physics-utils.js` 스냅샷 복제
+    - 목적: runtime 네이티브 프리뷰/브리지 비교 경로의 editor 직접 경로 의존 축소
+  - `public/jumpmap-runtime/app.js`
+    - legacy 물리 유틸 preload 경로를 `../jumpmap-editor/test-physics-utils.js`에서 `../shared/legacy/test-physics-utils.js`로 변경
+    - preload 성공 로그를 shared 경로 기준으로 명시
+  - `scripts/jumpmap-verify-split.mjs`
+    - runtime syntax 검증 대상에 `public/shared/legacy/test-physics-utils.js` 추가
+  - 효과:
+    - `runtimeImpl=native`에서 legacy 물리 유틸이 필요한 디버그/비교 모드도 runtime `public/shared`만으로 선행 준비 가능
+    - runtime의 `public/jumpmap-editor` 의존 범위를 레거시 플레이 본체 쪽으로 더 축소
+  - 검증:
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node --check public/shared/legacy/test-physics-utils.js`
+    - `node --check scripts/jumpmap-verify-split.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=18, fail=0`)
+- 레포 분리(R6) 런타임 레거시 진입 경로 래퍼 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/legacy/index.html`, `public/jumpmap-runtime/legacy/app.js` 추가
+    - 런타임 내부 고정 경로(`/jumpmap-runtime/legacy/`)를 통해 레거시 플레이 진입
+    - 현재 단계에서는 내부에서 `jumpmap-editor` 레거시 플레이로 즉시 리다이렉트(호환 래퍼)
+    - 목적: 호출자(런처/런타임 셸)에서 `jumpmap-editor` 직접 경로 의존 제거
+  - `public/shared/jumpmap-runtime-launcher.js`
+    - `buildJumpmapRuntimeLegacyPlayUrl(...)` 추가(기본 target=`../jumpmap-runtime/legacy/`)
+    - 기존 `buildLegacyJumpmapEditorPlayUrl(...)`는 호환 alias로 유지
+  - `public/jumpmap-runtime/app.js`
+    - 레거시 플레이 target URL 생성을 editor 직결 helper 대신 runtime 래퍼 helper로 전환
+  - `scripts/jumpmap-split-repos.mjs`, `scripts/jumpmap-verify-split.mjs`
+    - runtime required path에 `public/jumpmap-runtime/legacy/*` 추가
+    - verify runtime syntax 체크에 `public/shared/jumpmap-runtime-launcher.js`, `public/jumpmap-runtime/legacy/app.js` 추가
+    - route smoke 항목에 `runtime /jumpmap-runtime/legacy/` 추가
+  - 효과:
+    - 런타임 호출 경로를 `jumpmap-runtime` 내부로 수렴시켜 향후 레거시 구현 대체/제거 시 수정 범위 축소
+    - runtime split 검증에 새 래퍼 경로를 포함해 컷오버 준비도 향상
+  - 검증:
+    - `node --check public/shared/jumpmap-runtime-launcher.js`
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node --check public/jumpmap-runtime/legacy/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=17, fail=0`)
+- 레포 분리(R6) 네이티브 shared 물리 경로 우선화 1차(최신, 2026-02-26):
+  - `public/jumpmap-runtime/app.js`
+    - 네이티브 런타임 진입 시 물리 의존 상태(`shared/legacy`)를 먼저 기록하도록 보강
+    - shared 물리 브리지 + shared geometry가 준비된 경우 `test-physics-utils.js` preload를 기본 생략
+    - legacy 유틸 preload가 필요한 경우(브리지 비교/적용 검증 등)만 조건부 로드
+    - legacy 유틸 로드 실패 시 즉시 중단 대신 shared 경로로 계속 시도하도록 완화
+    - 최종 물리/지오메트리 의존 준비 실패는 명시적 오류로 차단(원인 로그 강화)
+  - 효과:
+    - `runtimeImpl=native` 사용자 플레이/프리뷰 경로에서 `public/jumpmap-editor/test-physics-utils.js` 직접 의존을 완화
+    - runtime 레포 컷오버 전 임시 호환 브리지 범위를 축소하는 준비 단계
+  - 검증:
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=15, fail=0`)
+- 레포 분리(R6) 네이티브 실플레이 1차 진입 경로 추가(최신, 2026-02-25):
+  - `public/jumpmap-runtime/index.html`
+    - `body.play-mode` 전용 레이아웃 추가(검증 패널 숨김, 캔버스 풀스크린 표시)
+    - 네이티브 조작 버튼(`왼쪽/오른쪽/점프`) UI 추가
+  - `public/jumpmap-runtime/native-runtime.js`
+    - 포인터 기반 조작 입력(hold/release) 지원
+    - 키보드 + 터치 입력 병합 처리 및 blur 시 입력 해제 처리
+  - `public/jumpmap-runtime/app.js`
+    - native 플레이 모드에서 기본 동작을 `레거시 자동 전환`이 아니라 `네이티브 유지`로 변경
+    - 필요 시 `nativeFallbackLegacy=1`로 레거시 자동 전환 가능
+    - 네이티브 조작 버튼 DOM을 bootstrap 의존성으로 연결
+  - `public/jumpmap-play/app.js`
+    - `runtimeImpl=native` 선택 시 `nativeStay=1` 기본 주입(중간 리다이렉트 방지)
+  - 검증:
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node --check public/jumpmap-runtime/native-runtime.js`
+    - `node --check public/jumpmap-play/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=15, fail=0`)
+- 레포 분리(R5) 런타임 플레이 UI 분기 정리 2차(최신, 2026-02-25):
+  - `public/jumpmap-runtime/app.js`
+    - `launchMode=play&fromLauncher=1` + `runtimeImpl=legacy` 기본 진입에서 `runtime-play-clean` 클래스 적용
+    - 검증 UI 노출은 `runtimeDebug`, `runtimeDebugUi`, `runtimeShellDebug` 파라미터로만 허용
+  - `public/jumpmap-runtime/index.html`
+    - `runtime-play-clean`일 때 검증 패널(요약/로그/구현체 선택/액션) 기본 숨김
+  - `public/jumpmap-play/app.js`
+    - 점프맵 런타임 전환 시 디버그/검증 파라미터 pass-through 지원
+  - `public/jumpmap-editor/editor.js`
+    - play 런치 진입 시 `html.jumpmap-play-launch` 클래스도 함께 적용(플레이 전용 CSS 분기 안정화)
+  - 검증:
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node --check public/jumpmap-play/app.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=15, fail=0`)
+- 레포 분리(R5) 사용자 플레이 기본 진입 경로 전환 1차(최신, 2026-02-25):
+  - `public/jumpmap-play/app.js`
+    - 기본 런타임 구현체를 `native` 검증 경로가 아닌 `legacy` 사용자 플레이 경로로 전환
+    - `legacy` 기본 진입 시 `runtimeRedirectDelayMs=0` 적용으로 런타임 셸 체류 최소화
+    - 검증이 필요할 때만 `?runtimeImpl=native`로 기존 네이티브 프리플라이트 경로 사용 가능
+  - 검증:
+    - `node --check public/jumpmap-play/app.js`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke` (`pass=15, fail=0`)
+- 레포 분리(R4) 분리 검증 자동화 3차(최신, 2026-02-25):
+  - `scripts/jumpmap-verify-split.mjs` 보강:
+    - 로컬 라우트 스모크 단계의 `listen` 권한 오류(`EPERM`/`EACCES`)를 자동 감지해 검증 `skip(pass)` 처리
+    - 샌드박스/CI처럼 소켓 바인딩이 제한된 환경에서도 전체 검증 실패 없이 핵심 검증(필수 경로/구문/publish dry-run) 지속
+  - 결과:
+    - monorepo 실행: `pass=16, fail=0` (local route smoke는 권한 제한 안내 후 skip)
+    - split 반영: `node scripts/jumpmap-split-repos.mjs --apply --force-merge`로 editor/runtime 동기화 재적용
+- 레포 분리(R4) 분리 검증 자동화 2차(최신, 2026-02-25):
+  - `scripts/jumpmap-verify-split.mjs` 추가
+    - runtime/editor 분리 경로 존재 확인
+    - 필수 파일 체크(runtime `10`, editor `6`)
+    - 핵심 엔트리 `node --check` 구문 검증
+    - editor -> runtime 맵 publish `--dry-run` 검증
+  - `scripts/jumpmap-split-repos.mjs` 갱신:
+    - editor 복제 대상에 `scripts/jumpmap-verify-split.mjs` 포함
+  - 검증:
+    - monorepo에서 `node scripts/jumpmap-verify-split.mjs` 통과
+    - editor 레포에서 `node scripts/jumpmap-verify-split.mjs` 통과
+    - 결과: `pass=15, fail=0`
+- 레포 분리(R4) 로컬 실행/부트스트랩 정리 1차(최신, 2026-02-25):
+  - `scripts/jumpmap-local-serve.mjs` 개선:
+    - `runtime-map` 엔드포인트가 아래 후보를 순차 사용하도록 변경
+      - `save_map/jumpmap-01.json`
+      - `public/shared/maps/jumpmap-01.json`
+    - 효과: runtime/editor 분리 후에도 동일 서버 스크립트로 로컬 실행 가능
+  - 분리 스캐폴드 재적용:
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - required-path 검증 통과(runtime `10/10`, editor `6/6`)
+  - 독립 개발 준비:
+    - `/Users/baekjiyun/Desktop/WAN/nolquiz-runtime`에 `.git`, `.gitignore`, `README.md` 초기화
+    - `/Users/baekjiyun/Desktop/WAN/nolquiz-editor`에 `.git`, `.gitignore`, `README.md` 초기화
+  - 런타임 맵 publish 경로 점검:
+    - `node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../nolquiz-runtime --dry-run`
+    - 대상 경로: `../nolquiz-runtime/public/shared/maps/jumpmap-01.json`
+- 레포 분리(R3) 스캐폴드 생성 + 필수 경로 검증 자동화(최신, 2026-02-25):
+  - `scripts/jumpmap-split-repos.mjs`로 분리 스캐폴드를 실제 생성:
+    - runtime: `/Users/baekjiyun/Desktop/WAN/nolquiz-runtime`
+    - editor: `/Users/baekjiyun/Desktop/WAN/nolquiz-editor`
+  - 스크립트 보강:
+    - `--no-verify` 옵션 추가(기본은 apply 후 검증 수행)
+    - runtime/editor 필수 엔트리 경로 자동 검증 추가
+    - runtime 복제 대상에 `scripts/jumpmap-local-serve.mjs` 포함(분리 후 즉시 로컬 실행 가능)
+  - 검증 결과:
+    - runtime required `10/10`
+    - editor required `6/6`
+  - 검증:
+    - `node --check scripts/jumpmap-split-repos.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+- 레포 분리(R2) publish 경로 고정 1차(최신, 2026-02-24):
+  - `scripts/jumpmap-publish-runtime-map.mjs` 확장
+  - 지원 옵션:
+    - `--runtime-repo <dir>`: 외부 runtime 레포 대상 publish
+    - `--target <file>`: 대상 파일 직접 지정
+    - `--source <file>`, `--map-name <name>`, `--dry-run`, `--no-backup`
+  - 안정화:
+    - publish 전 소스 JSON 파싱/검증
+    - 대상 존재 시 자동 백업(`.bak-YYYYMMDD-HHMMSS`) 생성
+    - 결과 요약 로그 출력(v2/맵크기/오브젝트/히트박스/배경 사용 여부)
+  - 검증:
+    - `node --check scripts/jumpmap-publish-runtime-map.mjs`
+    - `node scripts/jumpmap-publish-runtime-map.mjs --dry-run`
+    - `node scripts/jumpmap-publish-runtime-map.mjs`
+- 레포 분리(R2) 런타임 맵 로더 경로 유연화 1차(최신, 2026-02-24):
+  - `public/shared/jumpmap-runtime-launcher.js`
+  - 런타임 맵 후보 경로에 query 기반 오버라이드 지원:
+    - `runtimeMapUrl`(또는 `mapUrl`): 절대/상대 URL 직접 지정
+    - `runtimeMapName`(또는 `mapName`): `public/shared/maps/<name>.json` 대상 지정
+  - 보안/안정성:
+    - `runtimeMapName`은 파일명 패턴(`A-Z a-z 0-9 . _ - + .json`)만 허용
+    - 중복 후보 URL는 자동 제거
+  - 효과:
+    - 분리 후 runtime 레포에서 맵 전환/검증 시 URL 수정만으로 운영 맵 교체 가능
+    - 기본 경로(`../shared/maps/jumpmap-01.json`)와 fallback(` /__jumpmap/runtime-map.json`)은 유지
+- 런타임 분리(R1) 네이티브 프리뷰 렌더 정합성 3차(최신, 2026-02-24):
+  - `public/jumpmap-runtime/native-runtime.js`
+  - 네이티브 프리뷰 렌더 루프에서 `crop`이 없는 오브젝트를 건너뛰던 분기 제거.
+    - 기존: `crop.w/h <= 0`이면 `continue` → no-crop 오브젝트(예: `plate_grass*`, `plate_stand*`) 누락.
+    - 변경: no-crop 오브젝트는 소스 사각형을 이미지 원본 전체(`naturalWidth/Height`)로 사용해 렌더.
+  - 카메라 가시성/컬링 기준도 동일 draw 크기(no-crop 기준)로 계산하도록 정렬.
+  - 효과:
+    - 네이티브 프리플라이트 프리뷰에서 오브젝트 누락(106 중 55개만 렌더) 현상 완화.
+    - 테스트모드/레거시 플레이와 네이티브 프리뷰 간 시각 차이 축소.
+- 런타임 분리(R1) 플레이 동선 안정화 2차(최신, 2026-02-24):
+  - `public/jumpmap-runtime/app.js`
+  - `launchMode=play` + `fromLauncher=1` 경로에서는 `resolve bridge validate preset`을 기본값으로 켜지 않도록 분기 추가.
+    - 효과: 브리지 비교/적용 카운터가 플레이 진입 시 프레임마다 증가하는 현상 완화.
+    - 필요 시 URL 파라미터(`resolveBridgeValidate=1` 등)로 명시적으로 활성화 가능.
+  - `runtimeImpl=native` + `nativePlay=1` 플레이 진입 시:
+    - 기본값은 native 프리플라이트 후 레거시 플레이로 자동 연결(사용자 플레이 동선 우선).
+    - `nativeStay=1` 또는 `nativeShellOnly=1`일 때만 네이티브 검증 화면 유지.
+  - 기대 효과:
+    - “네이티브 검증 화면에서 수동 비교 버튼을 눌러야만 플레이되는” 체류 문제를 완화.
+    - 분리 작업 중에도 사용자 플레이 진입 동선을 안정적으로 유지.
+- 런타임 분리(R1) 플레이 진입 안정화 1차(최신, 2026-02-24):
+  - `public/jumpmap-runtime/app.js`
+  - `runtimeImpl=native` + `launchMode=play` + `fromLauncher=1` 조합에서
+    런타임 검증 패널에 멈추지 않고 legacy 플레이로 자동 연결되도록 분기 추가.
+  - `nativeShellOnly=1`이 있으면 기존처럼 수동 비교 실행 대기 유지.
+  - `public/shared/jumpmap-runtime-launcher.js`
+  - legacy 플레이 URL에 `autoRestartTest=1` 추가.
+  - `public/jumpmap-editor/editor.js`
+  - 자동 시작 진입 시 `enterTestMode` 다음 프레임에 `restartTestMode`를 1회 수행해,
+    수동 `다시시작`과 동일한 초기화 경로를 강제하도록 보정.
+  - 기대 효과:
+    - “첫 진입 화면과 다시시작 후 화면이 달라지는” 초기화 차이를 축소.
+    - 분리 단계 런타임에서도 사용자 플레이 진입 동선 유지.
+- 런타임 분리(R1) 물리 브리지 이관 3차(최신, 2026-02-24):
+  - `public/shared/jumpmap-runtime-physics.js`
+  - `stepPlayerState`에 shared 실행 경로 추가:
+    - `window.__JUMPMAP_RUNTIME_USE_SHARED_STEP === true` 이면 shared 스텝 경로 사용
+    - legacy `stepPlayerState`가 없는 환경에서는 shared 스텝 경로 자동 사용
+    - shared 경로 실패 시 legacy 스텝으로 자동 fallback (legacy 존재 시)
+  - 브리지 상태 정보 보강:
+    - `sharedStepPlayerStatePresent`
+    - `legacyStepPlayerStatePresent`
+    - `stepPlayerStateSource` (`shared` / `legacy` / `none`)
+  - 검증:
+    - `node --check public/shared/jumpmap-runtime-physics.js`
+    - `node --check public/shared/jumpmap-runtime-physics-adapter.js`
+    - `node --check public/jumpmap-runtime/native-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 런타임 분리(R1) 물리 브리지 이관 2차(최신, 2026-02-24):
+  - `public/shared/jumpmap-runtime-physics.js`
+  - `resolveHorizontal/resolveVertical`가 legacy 래퍼가 아닌 shared 구현을 사용하도록 전환.
+  - preflight 단계의 legacy 물리 호출 제거:
+    - `detectGroundSupport`
+    - `estimateGroundSlope`
+    - `normalizeFlatZonesForPhysics`
+    - `isPlayerFootInFlatZone`
+  - 현재 `callLegacy(...)`는 비교용(`resolveHorizontal/resolveVertical`)과 최종 `stepPlayerState` 경로에만 남음.
+  - 검증:
+    - `node --check public/shared/jumpmap-runtime-physics.js`
+    - `node --check public/shared/jumpmap-runtime-physics-adapter.js`
+    - `node --check public/jumpmap-runtime/app.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 테스트모드 렌더 최적화 + 배경 경로 저장/불러오기 호환 보강(최신, 2026-02-22):
+  - 렉/버벅임 완화:
+    - `public/jumpmap-editor/test-runtime.js`
+    - 테스트모드 각 분할 화면의 오브젝트 렌더에 `오프스크린 컬링` 추가.
+    - 화면 밖(카메라 뷰 + 여유 마진) 오브젝트는 DOM `display:none`으로 숨겨, 다인모드에서 렌더 비용 감소.
+    - 충돌 계산 캐시는 유지(기능/판정 변경 없음), 렌더 비용만 줄이는 방식.
+  - 저장맵 배경 복원 안정화:
+    - `public/jumpmap-editor/editor.js`
+      - 불러오기 시 루트 절대경로(`/quiz_background/...`)를 에디터 상대경로로 자동 보정.
+    - `public/jumpmap-editor/map-io-utils.js`
+      - 저장 시에도 배경 이미지 경로를 portable(상대경로) 형태로 정규화해 재발 방지.
+    - 효과: 금강전도 배경이 저장맵 재불러오기/환경 변경(로컬/배포 경로)에서도 더 안정적으로 복원됨.
+  - 검증:
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 모드 규칙 어댑터 경계 1차 구현(최신, 2026-02-21):
+  - 배경: 퀴즈코어를 점프맵 외 게임 모드에도 재사용하기 위해, 런타임 규칙(게이지/보상)을 분리할 필요가 있었음.
+  - 변경:
+    - `public/jumpmap-editor/game-rule-adapter.js` 추가
+      - `jumpmap` 기본 규칙(이동/점프 소모, 정답 보상, 오답 0 보상, 오답 딜레이) 제공
+    - `public/jumpmap-editor/integration-bridge.js` 확장
+      - 어댑터 주입 지원(`modeId`, `ruleOptions`)
+      - 브리지 계약 누락 이벤트 `drop + warn + counter(bridgeDroppedEvents)` 추가
+      - 공용 이벤트 `resource:changed`, `resource:empty` 추가
+      - 호환 API(`getGauge/setGauge/consumeGauge/refillGauge`) 유지
+    - `public/jumpmap-editor/index.html`
+      - `game-rule-adapter.js` 스크립트 로드 추가
+    - `public/jumpmap-editor/editor.js`
+      - 브리지 생성 시 `modeId: jumpmap`, `ruleOptions` 기본값 주입
+  - 호환성:
+    - 맵 저장 스키마(`version:2`) 변경 없음
+    - 기존 저장 맵 재사용 경로 영향 없음
+  - 검증:
+    - `node --check public/jumpmap-editor/game-rule-adapter.js`
+    - `node --check public/jumpmap-editor/integration-bridge.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 퀴즈코어 다중 게임 재사용 관점 보강(최신, 2026-02-21):
+  - 배경: 퀴즈코어가 점프맵 외 다른 게임 모드와도 연결될 예정이므로, 계획 문서가 점프맵 전용 규칙에 과도 고정되지 않도록 보강 필요.
+  - 반영:
+    - `docs/jumpmap-runtime-quiz-plan.md`
+      - `game-rule-adapter` 모듈 경계 추가
+      - 브리지 확장 필드(`resourceKey`, `resourceDelta`, `ruleSetId`) 명시
+      - 모드 어댑터 확장 단계(`Phase G`) 추가
+    - `docs/jumpmap-runtime-quiz-checklist.md`
+      - 모드 어댑터 로드 확인/타 게임 목업 확장성 점검 섹션 추가
+    - `docs/skills/jumpmap-runtime-quiz/SKILL.md`
+      - 퀴즈코어 하드코딩 금지 규칙과 어댑터 교체 완료 기준 추가
+  - 목적: 점프맵 구현을 유지하면서도 퀴즈코어 재사용성을 보장하는 구조를 선제 고정.
+- 점프맵-퀴즈 통합 운영값 확정 반영(최신, 2026-02-21):
+  - 확정:
+    - 오답 게이지 회복 `+0`
+    - 오답 후 `3초 딜레이`
+    - 퀴즈는 개인 세션, 타 플레이어는 계속 진행
+    - 문제 종료마다 결과 안내 + `다음 문제/맵으로 복귀` 팝업
+    - 이벤트 누락 시 `drop + warn + counter` 로깅
+  - 반영 문서:
+    - `docs/jumpmap-runtime-quiz-plan.md`
+    - `docs/jumpmap-runtime-quiz-checklist.md`
+    - `docs/skills/jumpmap-runtime-quiz/SKILL.md`
+- 점프맵-퀴즈 통합 문서 점검/보강(최신, 2026-02-21):
+  - 배경: 통합 실행 전 `개발계획/체크리스트/스킬` 간 경계 정의와 검증 순서를 더 명확히 고정할 필요가 있었음.
+  - 변경:
+    - `docs/jumpmap-runtime-quiz-plan.md`
+      - 비범위(Non-goal), 브리지 이벤트 계약 필수 필드, 저장 호환 규칙, 단계 통과 기준 보강
+      - 로컬 실행 절차를 명령 단위로 명시
+    - `docs/jumpmap-runtime-quiz-checklist.md`
+      - repo 루트 진입/구문 체크/로컬 우선 검증/회귀 맵 2종 검증 항목 추가
+      - 멀티플레이 입력 구역 분리 확인 항목 추가
+    - `docs/skills/jumpmap-runtime-quiz/SKILL.md`
+      - 사용/미사용 시점, 문서 동기화 절차, 실패 시 중단 기준 추가
+  - 목적: 구현 전 문서만으로도 누가 실행해도 동일한 통합 검증이 가능하도록 절차를 표준화.
+- 점프맵-퀴즈 통합 문서 3종 추가(최신, 2026-02-22):
+  - 추가:
+    - `docs/jumpmap-runtime-quiz-plan.md`
+    - `docs/jumpmap-runtime-quiz-checklist.md`
+    - `docs/skills/jumpmap-runtime-quiz/SKILL.md`
+  - 의도:
+    - 멀티플레이 공통 모드(기본 점프맵)와 플레이어별 독립 상태를 전제로,
+      게이지/퀴즈 브리지/회귀 검증을 구현 전에 고정하기 위함.
+- 멀티플레이-퀴즈 통합 계획/체크리스트 보강(최신, 2026-02-21):
+  - 배경: 점프맵 게이지 시스템과 퀴즈코어 연결을 멀티플레이(2~6인)까지 고려해 문서 기준으로 재정리 필요.
+  - 반영 문서:
+    - `docs/jumpmap-editor-plan.md`
+      - `10-1) 점프맵-퀴즈코어 통합 규칙 (멀티플레이 기준)` 추가
+      - 런타임/퀴즈코어/브리지 책임 분리, 상태 머신, 게이지/세션 분리 원칙 명시
+    - `docs/jumpmap-editor-phase6-checklist.md`
+      - 8) 게이지 시스템 검증
+      - 9) 퀴즈 브리지 루프 검증
+      - 10) 멀티플레이 분리 검증
+      - 11) 통합 회귀 검증
+    - `docs/jumpmap-quiz-integration-direction.md`
+      - 멀티플레이 보강 체크포인트(상태 분리/이벤트 계약/왕복 UX) 추가
+      - 체크리스트 링크 섹션 추가
+  - 목적: 코드 변경 전, 기능 경계와 검증 기준을 명확히 고정해 이후 구현 리스크를 낮춤.
+- 얼음 표면 미끄러짐 분리 + 히트박스 y-밀림 재발 방지(최신, 2026-02-20):
+  - 요청 반영:
+    - `얼음판 미끄러짐`과 `경사면 미끄러짐`을 분리.
+    - 새로고침/불러오기 때 히트박스가 위로 밀리는(좌표 재해석) 재발을 억제.
+  - 변경:
+    - 테스트 물리:
+      - 장애물 수집 시 `surfaceKind`를 포함(`sprite`에 `ice` 포함이면 `ice` 표면으로 판정).
+      - 지면 샘플 히트(`findGroundSnapTopY`)에 `surfaceKind` 전달.
+      - `stepPlayerState`에서 `ice` 표면 분기 추가:
+        - 경사 미끄러짐(`slopeSlideEnabled`)과 별도로 얼음 관성/제어 계수를 적용.
+        - 기본값: `iceInertiaPercent=96`, `iceControlPercent=72` (옵션 미지정 시 자동 적용).
+    - 좌표 정규화:
+      - `normalizeHitboxesForCropSpace`의 과한 `minus` 복구 경로 제거.
+      - polygon 좌표 자동 rebasing 조건을 보수적으로 축소(명확한 레거시 패턴에서만 변환).
+      - x/y가 유효한 polygon 데이터는 강제 재베이스하지 않도록 변경.
+  - 영향 파일:
+    - `public/jumpmap-editor/test-physics-utils.js`
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/map-io-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs`
+- 급경사/수직면 코너 매달림 보정(최신, 2026-02-20):
+  - 증상: 수직에 가까운 면 또는 코너 접촉에서 캐릭터가 바닥처럼 판정되어 매달리듯 멈추는 현상.
+  - 원인: 지면 샘플링에서 수직 에지/세그먼트 끝점 접촉이 `ground snap` 후보로 채택됨.
+  - 변경:
+    - 지면 샘플링(`getPolygonTopHitAtX`)에서 수직 에지는 지면 후보에서 제외.
+    - 세그먼트 끝점(코너)만 닿는 접촉은 지면 후보에서 제외(끝점 마진 적용).
+    - `findGroundSnapTopY`에 `maxGroundAngle` 필터를 적용해 과도한 급경사는 접지 후보에서 제외.
+    - 물리 스텝의 지면 탐색/스텝업/점프 직전 접지/경사 추종에 동일 필터 전달.
+  - 영향 파일:
+    - `public/jumpmap-editor/test-physics-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 수평 관성(평면 미끄러짐) 옵션 추가(최신, 2026-02-20):
+  - 요청 반영: 수평에서도 관성(미끄러짐) 효과를 선택적으로 적용할 수 있도록 물리 설정 확장.
+  - 변경:
+    - 물리 설정 UI에 `수평 관성 사용`, `관성 유지율(%)` 추가.
+    - 저장/불러오기 정규화에 `physics.flatInertiaEnabled`, `physics.flatInertiaPercent` 추가.
+    - 테스트 물리에서 입력이 없고 평면(또는 평면 특수영역) 접지 상태일 때 관성 감쇠 적용:
+      - ON: 유지율에 따라 속도가 점진 감쇠
+      - OFF: 기존처럼 즉시 정지
+  - 영향 파일:
+    - `public/jumpmap-editor/index.html`
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/map-io-utils.js`
+    - `public/jumpmap-editor/test-physics-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 오브젝트/히트박스 박스 색상 분리(최신, 2026-02-19):
+  - 요청 반영: 오브젝트 박스와 히트박스 박스가 시각적으로 혼동되지 않도록 색 체계를 분리.
+  - 변경:
+    - 메인 에디터: 오브젝트 선택 박스 `초록`, 히트박스 `빨강`, 캐릭터 히트박스 `파랑`으로 고정.
+    - 정밀 작업판: 오브젝트 크롭 박스 `초록`, 활성/비활성 히트박스 모두 `빨강` 계열로 통일.
+    - 범례 색상도 동일 규칙으로 동기화.
+  - 영향 파일:
+    - `public/jumpmap-editor/editor.css`
+- 수평 근접면 좌측 이동 막힘 완화(최신, 2026-02-19):
+  - 증상: 수평/완만 경사에서 접지 판정이 순간적으로 끊기면 미세 단차에 걸려 좌측 이동이 멈추는 사례가 발생.
+  - 변경:
+    - `test-physics-utils.stepPlayerState`에서 수평 해석의 `allowStepUp` 기준을 확장:
+      - 기존: `onGround || groundedBeforeStep`
+      - 변경: `onGround || groundedBeforeStep || coyoteTimer>0` + `vy>=0` 조건
+    - 동일 기준으로 `slopeFollow` 보조를 적용해 접지 끊김 프레임에서도 수평 추종 유지.
+    - `detectGroundSupport`에 고정밀 재탐색 fallback 추가:
+      - 기본 탐색 실패 시 `sampleSpacing=2`, `direction=0`으로 1회 추가 탐색.
+  - 효과:
+    - 미세한 알파 단차/세그먼트 이음부에서 좌우(특히 좌측) 이동이 갑자기 막히는 현상 완화.
+  - 영향 파일:
+    - `public/jumpmap-editor/test-physics-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+- 기능 경계 분리 1차(최신, 2026-02-19):
+  - 목표: 에디터/테스트 런타임에 퀴즈 코어/게이지 시스템을 붙일 수 있도록 최소 경계(브리지)만 추가하고, 기존 맵 포맷 호환성을 유지.
+  - 변경:
+    - `public/jumpmap-editor/integration-bridge.js`를 기준 브리지로 사용(이벤트 버스, 게이지 API, 퀴즈 요청 게이트웨이).
+    - `editor.js`에서 브리지 인스턴스를 생성해 테스트 런타임 생성 시 주입.
+    - `test-runtime.js`에서 브리지 이벤트를 발행:
+      - `test:enter`
+      - `test:restart`
+      - `test:exit`
+      - `test:warp_to_savepoint`
+      - `test:player_count_changed`
+  - 호환성:
+    - 저장 스키마/로드 파이프라인 변경 없음(`version:2` 유지).
+    - 기존 저장 맵 파일 `/save_map/jumpmap-20260219-164307.json` 파싱 확인:
+      - `version=2`, `schema=jumpmap-editor-map`, `objects=35`
+  - 영향 파일:
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/test-runtime.js`
+    - `public/jumpmap-editor/integration-bridge.js`
+    - `public/jumpmap-editor/index.html`(브리지 스크립트 로드)
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs`
+- 캐릭터 점 기반 히트박스 보완 2차(최신, 2026-02-18):
+  - 목표: 에디터에서 만든 `캐릭터 점 기반 히트박스`를 테스트 런타임 충돌 판정에 직접 반영.
+  - 변경:
+    - 캐릭터 히트박스 다각형 필드 `playerHitboxPolygon` 추가(정규화 좌표 0~1).
+    - `점 히트박스 적용` 시 생성 점들을 다각형으로 저장하고, 기존 폭/높이/오프셋 업데이트와 함께 유지.
+    - 저장/불러오기(v2), 히스토리, 플레이어 프로파일에 `playerHitboxPolygon` 포함.
+    - 테스트 런타임에서 물리 스텝 호출 시 `playerHitboxPolygon` 전달.
+    - 테스트 물리 충돌(`collidesAt`, 수평/수직 해석, 지면 스냅)에서 캐릭터를 사각형 대신 다각형으로 계산 가능하도록 확장.
+  - 영향 파일:
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/test-runtime.js`
+    - `public/jumpmap-editor/test-physics-utils.js`
+    - `public/jumpmap-editor/map-io-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=67, fail=0`)
+- 캐릭터 히트박스 보완 1차(최신, 2026-02-17):
+  - 편집-적용 정합:
+    - 테스트 런타임 캐릭터 렌더 오프셋을 `full-frame anchor` 기준으로 수정해, 크롭 사용 시에도 에디터/테스트 간 스프라이트 위치 기준이 일치하도록 보정.
+  - 기준점 고정:
+    - 정밀 작업판에서 캐릭터 크롭/스케일 적용 시 `startPoint`를 암묵적으로 이동시키던 보정을 제거해, 기준점이 의도치 않게 바뀌지 않도록 고정.
+  - 작업 안정성:
+    - 오브젝트/히트박스/캐릭터 드래그 진행 중에는 조작 모드(`이동/크기/자르기`) 및 선택 대상(`오브젝트/히트박스`) 전환을 무시하도록 보호 로직 추가.
+  - 런타임 검증 UI:
+    - 테스트 헤더에 `충돌 디버그` 토글 추가.
+    - 토글 ON 시 플레이어 충돌 박스(자기/상대 구분)와 상태 오버레이(`x/y/vy/onGround/jumps`)를 실시간 표시.
+  - 영향 파일:
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/test-runtime.js`
+    - `public/jumpmap-editor/index.html`
+    - `public/jumpmap-editor/editor.css`
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=67, fail=0`)
+- 오목(ㄱ/L형) 단일 다각형 히트박스 충돌 오검출 보정(최신, 2026-02-17):
+  - 문제: 단일 다각형 히트박스가 오목 형태일 때, 내부 빈 공간에서도 충돌로 판정되어 캐릭터가 통과하지 못하는 현상이 발생.
+  - 원인: 기존 다각형 충돌이 SAT(축 분리) 기반으로 구현되어 오목 다각형 충돌에 부정확한 결과를 낼 수 있었음.
+  - 변경:
+    - 테스트 물리의 `polygonsIntersect`를 `선분 교차 + 점 포함(point-in-polygon)` 방식으로 교체.
+    - 오목/볼록 다각형 모두에서 내부 빈 공간 오검출을 줄이도록 보정.
+  - 영향 파일:
+    - `public/jumpmap-editor/test-physics-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=67, fail=0`)
+- 점 기반 다각형 생성 워크플로우 안정화(최신, 2026-02-17):
+  - 문제: 점 기반 생성에서 활성 히트박스를 선택하지 않은 상태로 `닫기/생성`을 누르면 기존 첫 번째 히트박스를 덮어쓸 수 있어, 다각형 생성 워크플로우가 불안정했음.
+  - 변경:
+    - 활성 히트박스가 선택된 경우에만 해당 히트박스를 `단일 다각형`으로 교체.
+    - 활성 히트박스가 없으면 기존 히트박스를 보존하고 새 다각형 히트박스를 끝에 추가.
+    - 생성 후 선택 인덱스를 새로 생성/교체된 다각형으로 자동 고정.
+  - UI 문구 정리:
+    - 정밀 작업판 안내를 `히트박스 세트` 표현에서 `단일 다각형 히트박스` 표현으로 수정.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 점 기반 단일 다각형 히트박스 생성/저장/충돌 지원(최신, 2026-02-17):
+  - 요청 반영: 정밀 작업판 `점 찍기` 생성을 기존 `다중 사각형 분해` 대신 `단일 다각형 히트박스`로 저장.
+  - 구현:
+    - `hitbox.type='polygon'`, `hitbox.points[]`(로컬 상대좌표) 스키마를 추가.
+    - `hitbox-utils` 복제 경로에서 다각형 포인트 보존.
+    - `map-io-utils` sanitize/load 경로에서 다각형 타입을 보존하고 레거시 포인트도 정규화.
+    - 에디터 선택 판정/오버레이 렌더에서 다각형 경계(`clip-path`)를 반영.
+    - 테스트 물리(`collectObstacleBounds`)에서 다각형 점을 직접 월드 폴리곤으로 변환해 SAT 충돌에 사용.
+  - 호환성:
+    - 기존 사각형 히트박스/저장 포맷은 그대로 유지.
+    - 다각형 히트박스는 현재 `이동` 중심 편집을 우선 지원(크기/회전 핸들은 비활성).
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/hitbox-utils.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 선택 모드 자동 전환 방지(최신, 2026-02-17):
+  - 요청 반영: 히트박스 `크기/회전/자르기` 작업 중 본문 클릭 시 자동으로 `이동` 모드로 바뀌던 동작 제거.
+  - 변경: 히트박스 본문 클릭은 현재 모드가 `이동`일 때만 드래그를 시작하고, 그 외 모드에서는 선택만 유지.
+  - 효과: 작업 중 모드가 의도치 않게 바뀌지 않아, 사용자가 고른 모드 기준으로 편집 흐름이 고정됨.
+- 정밀작업판 히트박스 전체 삭제 + 로컬 되돌리기/다시실행 추가(최신, 2026-02-17):
+  - 요청 반영: 오브젝트 내부 정밀작업판 상단에 `히트박스 전체 삭제`, `되돌리기`, `다시실행` 버튼을 추가.
+  - 구현:
+    - 정밀작업판 전용 히스토리(`history/historyIndex`)를 도입해 전역 맵 되돌리기와 분리.
+    - 드래그 조작은 중간 프레임이 아니라 종료 시점에 1회 기록되도록 처리(히스토리 과다 누적 방지).
+    - `cmd/ctrl+z`, `cmd/ctrl+shift+z`, `ctrl+y`는 정밀작업판이 열려 있을 때 작업판 히스토리로 우선 라우팅.
+    - `적용` 시 현재 상태를 기준선으로 재설정해 이후 작업의 되돌리기 기준을 명확화.
+  - 기대효과:
+    - 오브젝트 내부 히트박스 편집 중 빠른 롤백/재실행 가능.
+    - 전역 맵 히스토리 오염 없이 정밀 편집 흐름 안정화.
+- 정밀작업판 평행사변형 히트박스 버튼 추가(최신, 2026-02-16):
+  - 요청 반영: 정밀작업판 `점 기반 히트박스 생성`에 `평행사변형(3점)` 버튼 추가.
+  - 동작:
+    - 도구 선택 후 점 3개를 찍으면 4번째 점을 자동 계산해 평행사변형을 생성.
+    - 생성은 기존 다각형 rasterize/merge 파이프라인을 그대로 사용해 충돌 데이터 포맷과 호환 유지.
+    - `닫기/생성` 버튼도 평행사변형 도구에서 동작하며, 2점 상태에서 실행 시 기본 높이로 보조 3점 생성 후 완료 가능.
+  - UI 보강:
+    - 현재 도구(다각형/평행사변형)가 상태 텍스트에 표시되도록 개선.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 경사면 자동 미끄러짐(오르막 역방향 드리프트) 추가(최신, 2026-02-16):
+  - 요청 반영: 미끄러지는 구간에서 반대 방향(오르막) 입력 시 단순 감속만이 아니라, 경사/설정에 따라 느린 역방향 미끄러짐이 발생하도록 물리 보강.
+  - 적용 규칙:
+    - 경사 보행 가능 범위 내: `오르막 배율(up)` 적용 후 `내리막 방향 드리프트`를 합성.
+    - 입력이 없을 때: 경사면이면 완만한 내리막 자동 미끄러짐.
+    - 보행 가능 각도 초과: `미끄러짐 ON`이면 내리막 방향으로 더 강하게 흘러내림, `OFF`면 기존처럼 정지.
+  - 구현 포인트:
+    - `test-physics-utils.js`에 경사 구간 엔트리 선택 함수(`getSlopeProfileEntry`)와 드리프트 계수 함수(`getSlopeSlideDriftFactor`) 추가.
+    - 기존 `slopeSpeedProfile`(각도별 up/down 배율)을 그대로 사용해 드리프트 세기를 결정.
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 경사각 구간별 미끄러짐 배율 편집 UI 추가(최신, 2026-02-16):
+  - 요청 반영: 미끄러짐 기능 ON/OFF 외에, 경사각 구간별 `오르막/내리막 배율`을 직접 입력할 수 있도록 확장.
+  - 스테이지 툴바 > 물리 설정에 `경사각 구간별 이동 배율(%)` UI 추가:
+    - 각 구간의 `최대 각도`, `오르막%`, `내리막%` 편집
+    - 마지막 구간은 자동으로 `90도` 고정
+    - `기본값` 버튼으로 즉시 복원
+  - 저장/불러오기 확장:
+    - `physics.slopeSpeedProfile`를 맵 데이터에 저장/복원
+    - 값 클램프/정규화(각도 오름차순, 배율 0.2~2.0) 적용
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 시작지점/세이브포인트 역할 분리(최신, 2026-02-14):
+  - 요청 반영으로 세이브포인트 액션이 `시작지점 변경`을 수행하지 않도록 수정.
+  - 속성 패널 버튼 문구를 `시작지점 이동` → `카메라 이동`으로 변경.
+  - 현재 동작:
+    - 시작지점: 스폰 기준점(별도 유지)
+    - 세이브포인트: 카메라 이동/테스트 즉시 워프 전용
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 세이브포인트 시스템 추가(최신, 2026-02-14):
+  - `시작 지점`과 별개로 세이브포인트 목록(`id/name/x/y`)을 관리하도록 확장.
+  - 우측 속성 패널에 세이브포인트 관리 UI 추가:
+    - `현재 시작지점 저장`
+    - 세이브포인트 선택
+    - `시작지점 이동`
+    - `삭제`
+  - 맵 렌더에 세이브포인트 마커(파란 라벨) 표시 추가.
+  - 테스트 모드 헤더에 세이브포인트 선택 + `즉시 이동` 버튼 추가.
+    - 테스트 시작/재시작 시 선택된 세이브포인트가 있으면 해당 지점으로 즉시 워프.
+  - 저장/불러오기(v2) 확장:
+    - `savePoints` 필드 저장/복원
+    - 맵 경계 밖 좌표는 로드 시 자동 보정
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=64, fail=0`)
+- 정밀작업창 영역 자르기 단계 UI/조작 분리(최신, 2026-02-14):
+  - `영역 안 히트박스 자르기` 선택 시 단계가 명시적으로 표시되도록 개선:
+    - `1단계: 영역 정하기`
+    - `2단계: 영역 안 히트박스 자르기`
+  - 단계별 조작 분리:
+    - 1단계에서는 파란 `영역 박스`만 활성
+    - 2단계에서는 빨간 `자르기 박스`만 활성
+  - 비활성 단계 박스는 반투명 + 포인터 차단으로 오작동 방지.
+  - 결과: “영역 먼저 설정” 흐름이 강제되어 영역 설정이 안 먹히는 문제를 완화.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀작업창 `영역 안 히트박스 자르기` 2단계 워크플로우 적용(최신, 2026-02-14):
+  - 기존: 영역 지정과 절단이 같은 박스에서 동시에 일어나 작업 의도와 충돌.
+  - 변경: `영역 안 히트박스 자르기`에서 박스를 2개로 분리.
+    - 1단계(파랑): `영역 설정` 박스로 대상 히트박스 집합을 먼저 선택
+    - 2단계(빨강): `실제 자르기` 박스로 선택된 집합만 절단
+  - 영역 박스 이동/리사이즈 시 자르기 박스는 영역 내부로 자동 클램프.
+  - 실제 히트박스 데이터 변경은 2단계 자르기 박스 조절 시에만 발생.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀작업창 히트박스 `영역 자르기` 모드 추가(최신, 2026-02-14):
+  - `히트박스 자르기` 범위 선택에 `영역 안 히트박스 자르기` 버튼을 추가.
+  - 동작:
+    - 사각형 자르기 영역(핸들 8방향)으로 영역을 조절.
+    - 영역과 교차하는 히트박스만 절단하고, 영역 밖 히트박스는 변경하지 않음.
+    - 영역 내부 대상이 0개여도 안전 동작(비의도 단일 히트박스 fallback 제거).
+  - 저장/취소 흐름:
+    - 기존 정밀작업창 세션 규칙 유지(`적용` 시 확정 저장, 닫기 시 스냅샷 복원).
+    - 정밀작업창 열기/닫기 시 영역 자르기 세션 상태를 초기화해 객체 간 상태 누수 방지.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 점프/이동 렉 완화 성능 최적화(최신, 2026-02-14):
+  - 원인: 테스트 물리 루프에서 플레이어마다 매 프레임 전체 히트박스를 다시 수집/순회해 충돌 계산량이 급증하던 구조.
+  - 개선 1: 장애물 수집을 공간 인덱스(`cell 96px`) 포함 구조로 전환하고, 충돌/지면 스냅에서 **근처 후보만** 조회하도록 변경.
+  - 개선 2: 테스트 런타임에서 장애물 캐시를 구축해 `stepPlayerState`에 전달, 플레이어별 중복 장애물 수집을 제거.
+  - 개선 3: 테스트 루프에서 프레임 단위 공통값(`metrics`, `moveSpeed`, `sprite`, `offset`)을 1회 계산하도록 정리.
+  - 기대효과: 히트박스 수가 많은 맵에서 점프/이동 시 프레임 드랍과 입력 지연 체감 완화.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node --check public/jumpmap-editor/test-runtime.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 테스트 분할 수 기반 자동 축소 스케일 추가(최신, 2026-02-14):
+  - 요청 반영: 2~6인 분할에서 칸 폭이 줄어들수록 각 플레이어 화면의 맵/오브젝트가 더 넓게 보이도록 자동 축소.
+  - 구현:
+    - 뷰별 `test-camera` 래퍼를 추가하고, 뷰 폭 기반 스케일(`width/900`, clamp `0.28~1.0`) 적용.
+    - 카메라 계산은 축소 비율을 반영한 가상 뷰 크기(`viewRect / scale`)로 보정해 중심 추적 안정화.
+  - 결과:
+    - 인원 수가 늘어도 각 칸에서 주변 발판/맵이 더 많이 보임.
+    - 조작/물리/카메라 추적 규칙은 기존과 동일하게 유지.
+  - 검증: `node --check public/jumpmap-editor/test-runtime.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 다인 테스트에서 상대 캐릭터 가시화(최신, 2026-02-14):
+  - 기존: 각 분할 화면은 자기 캐릭터 1명만 렌더되어 다른 플레이어 진행 상태를 볼 수 없었음.
+  - 변경: 테스트 런타임을 `업데이트 단계`와 `뷰별 렌더 단계`로 분리.
+  - 각 분할 화면은 이제:
+    - 자기 캐릭터 상태로 카메라 추적 유지
+    - 자기 + 상대 캐릭터 전원을 같은 맵 위에 렌더
+    - 조작 입력은 기존처럼 해당 칸의 플레이어 상태에만 적용
+  - 보완: 상대 캐릭터는 `player-peer` 클래스로 시각 구분(반투명), 자기 캐릭터는 `player-self`.
+  - 검증: `node --check public/jumpmap-editor/test-runtime.js`, `node --check public/jumpmap-editor/editor.css`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 다중 선택 복사/붙여넣기 위쪽 비겹침 배치(최신, 2026-02-14):
+  - 기존: 복사 후 붙여넣기는 항상 오른쪽으로만 이동(`+X`) 배치.
+  - 변경: 다중 선택(`2개 이상`) 붙여넣기는 먼저 **위쪽(-Y)** 비겹침 위치를 탐색해 배치.
+  - 위쪽 공간이 부족하거나 충돌이 남는 경우에만 오른쪽 비겹침 배치로 안전 fallback.
+  - 단일 선택 붙여넣기 동작(오른쪽 배치)은 기존 그대로 유지.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 미세 단차 보행 허용 소폭 상향(최신, 2026-02-14):
+  - 요청 반영으로 자동 step-up 높이 기본식을 소폭 상향:
+    - `autoStepHeight = max(4, min(24, round(height*0.14)))`
+    - -> `autoStepHeight = max(5, min(26, round(height*0.16)))`
+  - 목적: 픽셀 단차가 있는 경사/이음부에서 점프 없이 보행 가능한 범위를 약간 확장.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 경사 보행 기본값 상향(최신, 2026-02-14):
+  - 걷기 가능 경사각 기본값을 `60도 -> 80도`로 상향.
+  - `physics.walkableSlopeMaxAngle`를 별도로 주지 않은 기본 맵/런타임에서 80도까지 보행 판정 허용.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 편집 설정에 캐릭터 이동속도 추가(최신, 2026-02-14):
+  - 물리 설정에 `이동 속도` 입력값(`move-speed`)을 추가하고 테스트 런타임의 고정값(`220`)을 제거.
+  - 테스트 모드 수평 이동은 이제 `state.physics.moveSpeed`를 사용하며, 맵 저장/불러오기(`map-io`)에도 `physics.moveSpeed`를 포함.
+  - 기존 맵 호환: `moveSpeed`가 없는 저장 데이터는 기본값 `220`으로 자동 보정.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node --check public/jumpmap-editor/map-io-utils.js`, `node --check public/jumpmap-editor/test-runtime.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 테스트 모드 모눈종이 제거(최신, 2026-02-14):
+  - 테스트 월드 생성 시 편집기 월드의 `backgroundImage/backgroundSize` 복사 로직 제거.
+  - 테스트 모드에서는 이제 `배경색/배경이미지`만 보이고, 편집용 모눈종이는 표시되지 않음.
+  - 검증: `node --check public/jumpmap-editor/test-runtime.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀작업창 히트박스 자르기 범위 분리(최신, 2026-02-14):
+  - 정밀작업창 `히트박스 자르기`에 범위 선택 UI 추가:
+    - `전체 히트박스 자르기`
+    - `개별 히트박스 자르기`
+  - `개별` 모드: 활성 히트박스 1개만 절단.
+  - `전체` 모드: 오브젝트 내 전체 히트박스 집합을 일괄 절단.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 히트박스 자르기 범위 규칙 변경(최신, 2026-02-14):
+  - 요청 반영으로 `히트박스 자르기`는 단일 히트박스 기준이 아니라 **오브젝트의 전체 히트박스 집합** 기준으로 동작하도록 통일.
+  - 메인 맵 편집:
+    - 히트박스 자르기 모드에서 `히트박스 전체 자르기` 박스를 별도 표시.
+    - 해당 박스 핸들 드래그 시 전체 히트박스를 일괄 절단(오브젝트 이미지 형체는 유지).
+  - 정밀작업판:
+    - `선택 대상: 히트박스` + `자르기`에서 선택 집합이 아닌 전체 히트박스를 대상으로 동일 절단 규칙 적용.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀제어판 히트박스 자르기 박스 UX 보강(최신, 2026-02-14):
+  - 정밀제어판에서 `선택 대상: 히트박스` + `자르기` 모드일 때, 히트박스 전용 자르기 박스를 별도 표시.
+  - 기존처럼 히트박스 본체 핸들에 의존하지 않고, 생성된 자르기 박스(8방향 핸들)로 직접 절단 영역을 조절 가능.
+  - 다중 히트박스 선택 시 선택 집합의 외접 경계 박스를 표시하고, 한 번의 드래그로 그룹 절단 지원.
+  - 자르기 결과는 시작 스냅샷 기준으로 재구성해 드래그 중 누적 오차를 줄이고, 절단 후 선택 인덱스를 안전하게 재매핑.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 히트박스 자르기 지원 추가(최신, 2026-02-14):
+  - 메인 맵 편집에서 `선택 대상: 히트박스` + `자르기` 조합을 허용.
+  - 히트박스 다중 선택 상태에서 그룹 전체를 한 번에 자르기 가능.
+  - 자르기 드래그는 `시작 시점 스냅샷` 기준으로 재계산해 드래그 중 누적 오차/밀림을 줄임.
+  - 자르기 결과가 오브젝트 경계를 벗어나면 교집합 기준으로 안전하게 절단(`fallbackToNearest:false`).
+  - 정밀 작업판(workbench)에서도 동일하게 `히트박스 자르기` 지원.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 겹침 오브젝트 레이어 순서 조절 추가(최신, 2026-02-13):
+  - 속성 패널에 `레이어 순서` 조작 버튼 추가:
+    - `맨 뒤로`, `한 칸 뒤로`, `한 칸 앞으로`, `맨 앞으로`
+  - 선택된 오브젝트(다중 선택 포함)의 렌더 순서를 직접 변경 가능하도록 구현.
+  - 다중 선택 시 상대 순서는 유지하고, 다른 오브젝트와의 순서만 이동하도록 처리.
+  - 가이드 `작업 OFF`, 플레이어 선택, 비선택 상태에서는 버튼을 자동 비활성화해 오작동을 방지.
+- 알파 자동 추출 범위 일반화(최신, 2026-02-13):
+  - 기존 `plate_B` 전용 하드코딩을 제거하고, **모든 PNG 발판 오브젝트**에서 `PNG 알파 자동 추출` 버튼이 동작하도록 변경.
+  - 텍스처 오브젝트(`__texture__:*`)는 기존처럼 제외해 의도치 않은 질감 채움 전역 히트박스 생성을 방지.
+  - 속성 패널 버튼 문구를 전용 테스트 문구에서 일반 문구로 변경.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀작업판 자르기 비파괴 미리보기/적용 확정 분리(최신, 2026-02-13):
+  - 자르기 드래그/입력 중에는 히트박스 실데이터를 즉시 정규화하지 않고, **렌더에서만 크롭 경계 기준 미리보기 절단**으로 표시하도록 변경.
+  - 따라서 자르기 박스를 줄였다가 다시 키우면, `적용` 전에는 히트박스가 원래대로 복원되어 보임(비파괴 편집).
+  - `적용` 클릭 시에만 히트박스를 크롭 경계로 실제 절단 저장하도록 반영(`strict clip + allowEmpty`).
+  - 정밀작업판 닫기 시 `dirty`이면 스냅샷으로 정확히 되돌리도록 유지하여, 미적용 상태 데이터 오염을 방지.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀작업판 저장 타이밍/자르기 정합성 보강(최신, 2026-02-13):
+  - 정밀작업판 세션에 `snapshot + dirty` 상태를 추가해, **`적용`을 누르기 전에는 확정 저장되지 않도록** 변경.
+  - 정밀작업판을 닫을 때(`X`/오버레이 닫기) `dirty=true`이면 세션 시작 스냅샷으로 원복되도록 처리.
+  - `적용` 시에만 히스토리(`pushHistory`)를 1회 기록하고 확정 반영되도록 정리.
+  - `정밀작업판 저장` 버튼도 내부적으로 `적용`을 먼저 수행한 뒤 맵 저장하도록 보강.
+  - 오브젝트 자르기/정밀 자르기 중에는 `normalizeHitboxesForCropSpace` 좌표계 보정을 끄고 경계 클램프만 수행하도록 분리(`normalizeCropSpace:false`),
+    자르기 시 히트박스가 밀리는 현상을 완화.
+  - 히트박스 경계 클램프를 `이동 기반`에서 `교집합(절단) 기반`으로 변경해, 크롭 축소 시 히트박스가 통째로 밀리기보다 잘려서 맞춰지도록 보정.
+  - 추가 보강: 크롭/정밀편집 경로에서는 히트박스 집합 정렬(`alignHitboxSetToObjectBounds`)과 단일 박스 강제 스냅(`maybeSnapDisplacedLargeSingleHitbox`)을 비활성화해,
+    자르기 중 히트박스가 세트 단위로 옆으로 밀리는 현상을 차단.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- `plate_B` 걷는 면 우선(surface-only) 충돌 적용(최신, 2026-02-12):
+  - 목적: 회전된 `plate_B`에서 알파 기반 미세 단차로 오르막/역방향 이동과 점프가 막히는 현상 완화.
+  - 조치: 테스트 물리 수집 단계에서 `plate_B.png`를 `surfaceOnly` 오브젝트로 태깅하고, 본체 충돌(`collidesAt`)에서는 제외.
+  - 효과: `plate_B`는 지면 스냅/걷기 판정에는 사용되지만, 측면/내부 박스 충돌로 인한 과도한 막힘을 줄여 경사 보행 연속성을 개선.
+  - 범위: 현재 `plate_B.png`만 적용(실험 단계).
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 가장자리 점프 입력 누락 완화(최신, 2026-02-12):
+  - 원인: 알파 기반 경사/단차 경계에서 지면 판정이 1프레임 끊기면 같은 순간 점프 입력이 버려지던 케이스.
+  - 조치: 테스트 물리에 `코요테 타임(0.12초)`을 도입해 지면 이탈 직후 짧은 점프 유예를 허용.
+  - 적용: `createPlayerState`에 `coyoteTimer` 추가, 접지/착지 시 타이머 리셋, 비접지 시 감산, 1단 점프 조건에 `coyoteTimer` 포함.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 오르막 역방향 이동/점프 막힘 보강(최신, 2026-02-12):
+  - 원인: 지면 판정이 프레임 시작 시점에 엄격하게 끊기면(`maxUp/maxDown` 고정) `allowStepUp` 경로가 비활성화되어, 알파 기반 미세 단차 오르막에서 수평 이동이 막히고 같은 프레임 점프 판정도 실패하던 케이스.
+  - 조치 1: 시작 지면 프로브를 `autoStepHeight` 기반 범위로 확장하고, 비점프 상태에서 보조 프로브를 1회 추가해 경사면 지면 연속성을 강화.
+  - 조치 2: 수평 충돌이 걸릴 때 `증분 이동 + 지면 스냅` 보정 경로를 추가해, 미세 단차/톱니 경사에서 즉시 하드블록되지 않도록 완화.
+  - 조치 3: 점프 상승 중(`jumping`/`vy<0`)에는 시작 지면 스냅을 건너뛰어 공중점프 카운트가 리셋되지 않도록 보정.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 새로고침 시 히트박스 변형 완화(최신, 2026-02-12):
+  - 원인: 드래프트 복원 직후 `spriteMeta`가 아직 없는 상태에서 오브젝트 히트박스를 기본 메타(200x80)로 강제 클램프하면서 저장값이 바뀌던 문제.
+  - 조치: 메타가 신뢰 가능한 경우에만(`crop 존재` 또는 실제 `spriteMeta` 로드 완료) 히트박스 경계 클램프/단일 대형 박스 스냅을 수행하도록 변경.
+  - 메타 미로딩 상태에서는 히트박스 좌표를 보존해 새로고침 직후 값 변형을 방지.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 알파 자동 추출 버튼 위치 개선(최신, 2026-02-12):
+  - `plate_B 알파 자동 추출(테스트)` 버튼과 상태 메시지를 히트박스 하단에서 속성 패널 상단 `빠른 작업` 영역으로 이동.
+  - 기존 ID/로직(`auto-alpha-hitbox`, `auto-alpha-status`)은 유지해 동작 경로 충돌 없이 접근성만 개선.
+- 새로고침/불러오기 시 히트박스 좌표 드리프트 방지(최신, 2026-02-12):
+  - `normalizeHitboxesForCropSpace`를 보수적 변환 규칙으로 수정.
+  - 기존처럼 `raw/+offset/-offset` 후보를 매번 비교해 좌표를 이동시키지 않고, **데이터가 명백히 로컬 크롭 좌표일 때만** `+offset` 1회 변환.
+  - 이미 한 번 과대 쉬프트된 데이터는 엄격한 조건에서만 `-offset` 1회 복원해, 기존 저장 프로필도 초기 배치 정렬이 돌아오도록 보강.
+  - 이미 글로벌 좌표로 저장된 히트박스는 로드/정규화 단계에서 그대로 유지되어, 새로고침 후 오브젝트-히트박스가 다시 어긋나는 현상을 완화.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 경사각 구간별 이동속도 배율 시스템 추가(최신, 2026-02-12):
+  - 지면 접촉 상태에서 경사각을 추정해 오르막/내리막 이동속도를 분리 적용(`up/down` 배율).
+  - 기본 프로파일:
+    - `0~8도: up 1.00 / down 1.00`
+    - `8~18도: up 0.92 / down 1.08`
+    - `18~28도: up 0.82 / down 1.18`
+    - `28~38도: up 0.70 / down 1.30`
+    - `38~48도: up 0.58 / down 1.42`
+    - `48~90도: up 0.45 / down 1.55`
+  - `physics.slopeSpeedProfile` 배열이 있으면 해당 값을 우선 사용하고, 없으면 기본 프로파일을 사용.
+  - 알파 기반 다중 히트박스/회전 오브젝트와 함께 동작하도록 테스트 물리에 통합.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 경사면 보행 추적 정밀화(최신, 2026-02-12):
+  - 알파 기반으로 생성된 다중 히트박스를 회전/스케일한 오브젝트에서도 경사면으로 더 자연스럽게 타고 이동하도록 지면 추적 로직을 보강.
+  - `findGroundSnapTopY`를 단순 AABB 접촉 검사에서 `회전 폴리곤 상단 샘플링` 기반으로 확장해, 오르막에서 점프 강제가 발생하던 케이스를 완화.
+  - 수평 충돌 시 `직접 경사 스냅 -> step-up -> 이진 탐색` 순으로 해석해, 벽처럼 막히는 현상을 줄이고 경사 연속 이동을 강화.
+  - 수직 착지/지면 스냅에도 동일 추적을 적용해 공중부양처럼 보이는 틈을 줄임.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 경사면 이동/착지 충돌 보강(최신, 2026-02-12):
+  - 테스트 물리에서 회전 히트박스를 AABB로 단순화하던 경로를 개선해, 충돌 판정에 `회전 폴리곤(SAT)`을 사용하도록 변경.
+  - 수평 이동 충돌 시 `step-up(작은 단차 자동 상승)` + `이진 탐색` 보정을 적용해 오르막에서 점프 강제가 발생하던 상황을 완화.
+  - 수직 이동 충돌도 `이진 탐색`으로 보정해 착지/천장 판정의 안정성을 높이고, 경사면 추적용 지면 스냅(`findGroundSnapTopY`)을 추가.
+  - 검증: `node --check public/jumpmap-editor/test-physics-utils.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- `plate_B.png` 알파 자동 추출 테스트 경로 추가(최신, 2026-02-12):
+  - 우측 속성 > 히트박스 영역에 `plate_B 알파 자동 추출(테스트)` 버튼 추가(선택한 오브젝트가 `plate_B.png`일 때만 노출).
+  - 버튼 실행 시 PNG 알파 채널(투명도)을 읽어 비투명 픽셀 영역을 히트박스로 변환(`maskToMergedHitboxes`)해 현재 오브젝트에 즉시 적용.
+  - 생성 결과/오류를 같은 영역 상태 텍스트로 표시해 “현재 어떤 경로가 알파 기반인지”를 UI에서 확인 가능.
+  - 저장 포맷(`hitboxes[]`)과 기존 프로파일/불러오기 호환성은 유지.
+- 배치 직후 히트박스 이중 오프셋 방지 보강(최신, 2026-02-12):
+  - 크롭 좌표계 정규화(`normalizeHitboxesForCropSpace`)를 `raw / +offset / -offset` 3후보 점수 비교 방식으로 강화.
+  - `globalCoverage`를 우선 기준으로, 다른 후보가 **명확히 더 좋은 경우에만** 좌표를 이동시키도록 변경.
+  - 애매한 저장 데이터에서 한 번 더 쉬프트되어 오브젝트와 히트박스가 처음부터 어긋나던 케이스를 완화.
+  - 저장 포맷(`hitboxes[]`) 및 기존 불러오기 호환성은 유지.
+- 마스크 기반 히트박스 정확도 보강(최신, 2026-02-11):
+  - 정밀 작업판의 `점 찍기 -> 내부 채움` 마스크를 히트박스로 변환할 때, 단순 행 병합 대신 `최대 면적 앵커 분해 + 무손실 인접 병합`으로 교체.
+  - 픽셀 마스크를 손실 없이 커버하면서도 사각형 개수를 줄여, B 방식(다중 사각형 충돌)의 정확도/성능 균형을 강화.
+  - 충돌 포맷(`hitboxes[]`)은 유지해 저장/불러오기 및 런타임 호환성 보장.
+- 수평 충돌 시 뒤로 밀림 제거(최신, 2026-02-11):
+  - 테스트 물리 `resolveHorizontal`에서 충돌 시 보정 위치를 `현재 x ~ 다음 x` 구간으로 제한.
+  - 벽/히트박스 접촉 시 반대 방향으로 튕기듯 밀려나는 현상을 제거하고, 해당 방향 이동만 멈추도록 보정.
+- 점찍기 히트박스 저장 모양 보존 개선(최신, 2026-02-11):
+  - 정밀 작업판 `다각형 점 찍기` 저장 경로를 단일 bounding box 생성에서 `행 스팬 병합 다중 사각형` 생성으로 변경.
+  - 경계 점으로 만든 내부 채움 모양이 저장 시 과도하게 사각형 1개로 뭉개지던 문제를 완화.
+  - 기존 충돌/저장 스키마(`hitboxes[]`)는 유지해 호환성 보장.
+- 배치 직후 오브젝트-히트박스 어긋남 보정 강화(최신, 2026-02-11):
+  - 히트박스 정규화 전에 `히트박스 세트 전체`를 오브젝트 경계 기준으로 정렬하는 후보 평가 로직 추가.
+  - `raw/좌상단 정렬/중앙 정렬/우하단 정렬` 후보 중 경계 커버리지 점수가 가장 높은 위치를 선택해 초기 배치 정렬을 개선.
+  - 이후 기존 개별 클램프를 적용해 범위 안전성을 유지.
+- 정밀 작업판 수치 입력 UI 제거(최신, 2026-02-10):
+  - 요청에 따라 `이미지 자르기(px)`, `히트박스 정밀 조정(px)` 입력 섹션을 정밀 작업판에서 제거.
+  - 드래그/핸들 기반 편집 동작은 유지하고, 점 기반 히트박스 생성 UI는 유지.
+- 히트박스 생성 방식 단순화(최신, 2026-02-10):
+  - 정밀 작업판의 기존 색칠식(브러시/직사각형/추가/지우기) 경로를 제거하고 `점 기반 다각형` 생성만 유지.
+  - 경계 점을 찍고 `닫기/생성`하면 내부 채움 영역을 계산해 단일 히트박스를 생성.
+  - UI도 점 생성 전용으로 정리(`다각형 점 찍기`, `생성 ON/OFF`, `점 취소`, `닫기/생성`, `초기화`).
+  - 런타임에서 미사용이던 마스크 변환 함수들을 제거해 유지보수 복잡도와 충돌 가능성을 축소.
+- 정밀 작업판 히트박스 입력 방식 확장(최신, 2026-02-10):
+  - 기존 브러시 칠하기 외에 `직사각형(2점)` / `다각형(닫기-채움)` 입력 도구를 추가.
+  - 점으로 만든 도형 내부를 채워 기존 마스크 경로로 반영하고, 최종 저장은 기존 `hitboxes[]` 포맷으로 유지(호환성 유지).
+  - 오브젝트 크롭이 있는 경우 도형 채움 범위를 크롭 경계 안으로 제한해 "오브젝트 안에서 작업" 일관성을 보강.
+  - 점 편집 보조 UI(`점 취소`, `닫기/채우기`, `초기화`)를 추가해 브러시 없이도 정밀 히트박스 제작 가능.
+  - 현재는 단순화 단계에서 브러시/직사각형/추가·지우기 경로를 제거하고 `다각형 점 생성` 경로만 유지.
+- 선택/자르기 안정화 보강(최신, 2026-02-10):
+  - 오브젝트 선택 시 `selectionAction.object`를 기본 `move`로 강제해, 새 오브젝트 클릭 직후 `crop` 상태가 남아 삭제처럼 보이던 현상을 차단.
+  - 오브젝트 생성 직후에도 동일하게 기본 액션을 `move`로 초기화.
+  - 크롭 오버레이 활성 조건을 `selected.crop` 존재 시로 제한해, 크롭 데이터가 없는 오브젝트가 숨겨지는 문제를 방지.
+  - 크롭 레이어/소스 클릭 이벤트를 오브젝트 선택으로 흡수하고, viewport 선택박스 시작 ignore 대상에 크롭 레이어를 추가해 클릭 시 선택 꼬임을 완화.
+  - 히트박스 크롭 좌표계 보정에서 `raw / +crop / -crop` 3개 후보의 적합도를 비교해 최적 좌표계를 선택하도록 변경해, 배치 직후 일정 칸 수로 어긋나는 케이스(예: 8px 스냅 기준 9칸/11칸)를 완화.
+- 맵 에디터 핵심 흐름(배치/선택/히트박스/자르기/저장/불러오기/테스트)은 동작 가능 상태.
+- 배치 직후 히트박스-오브젝트 어긋남 자동 보정(최신):
+  - 프로파일/런타임/오브젝트 정규화에서 크롭 좌표계 보정을 `raw / +crop offset / -crop offset` 3개 후보로 평가해
+    크롭 영역 적합도가 가장 높은 좌표계를 자동 선택하도록 강화.
+  - 일부 레거시 저장값(좌표계 섞임)에서도 오브젝트를 비치하자마자 히트박스가 벗어나는 현상을 완화.
+  - 추가 보정: `단일 대형 히트박스`가 오브젝트 경계 대비 비정상 오프셋으로 판단되면,
+    배치/정규화 시 오브젝트 경계에 자동 스냅(`x/y/w/h`)시켜 첫 배치 정렬을 보장.
+- 속성 패널 상단 빠른 작업 고정(최신):
+  - 속성 패널 최상단(`selection-actions`)에 `정밀 작업창 열기 / 프로파일 저장 / 프로파일 적용` 빠른 버튼을 추가
+  - 빠른 버튼 블록을 `sticky`로 고정해, 오브젝트/히트박스 항목이 길어도 스크롤 없이 상단에서 즉시 접근 가능
+  - 플레이어 선택 시 빠른 버튼을 비활성화해 대상 혼선을 방지
+- 선택 액션/자르기 좌표 정합 보강(최신):
+  - `크기`/`자르기` 액션 클릭 시(플레이어 제외) 편집 대상을 `오브젝트`로 강제 전환하고 히트박스 선택 상태를 해제해,
+    오브젝트 크기 조절을 눌렀는데 히트박스 핸들이 뜨는 혼선을 제거.
+  - 오브젝트 자르기 드래그 시작 시 `crop anchor`를 저장하고, 드래그 중 포인터 로컬 좌표를 `anchor` 기준으로 환산해
+    자르기 박스 조작 시 원본 이미지가 같이 밀려 보이는 현상을 완화.
+  - 자르기 모드 종료(대상 전환/액션 전환/선택 전환) 시 `preserveVisual` 보정을 끄고 종료해,
+    자르기 해제 순간 오브젝트가 점프하는 위치 변화를 방지.
+  - 정밀 작업판(workbench)에서 적용된 `crop/hitbox`는 동일 오브젝트 데이터(`selected.crop`, `selected.hitboxes`)를 직접 갱신하므로
+    본 맵 화면 렌더와 저장 payload에 즉시 동일 반영.
+- 속성 패널 상단 재배치(최신):
+  - `속성 > 오브젝트 상세`의 최상단에 `정밀 편집`, `히트박스`, `복제/삭제` 순으로 배치해 빠른 접근성을 높임
+  - 기존 버튼 ID를 유지해 이벤트/동작 충돌 없이 레이아웃만 재정렬
+- 오브젝트 자르기 세션 고정/정합 보강(최신):
+  - `objectCropSession(anchor)`를 추가해 자르기 모드 전체 동안 원본 기준점을 고정
+  - 드래그 중뿐 아니라 자르기 모드 내 연속 편집에서도 원본 기준이 흔들리지 않도록 보정
+  - 자르기 모드 종료(액션 전환/대상 전환/선택 전환) 시, 현재 크롭 위치를 월드 좌표로 1회 보정해 `자르기 모드 ↔ 이동/크기 모드` 간 시각 점프를 완화
+  - 크롭 해제(`이미지 자르기 사용` OFF) 시에는 세션 보정을 적용하지 않고 안전 해제해 불필요한 위치 이동을 방지
+  - `자르기` 버튼 클릭 시 오브젝트 타깃으로 자동 전환해, 히트박스 타깃에 머문 상태에서 "크기/자르기 대상 혼선"이 발생하는 케이스를 줄임
+- 크롭/히트박스 정합성 보강(최신):
+  - 오브젝트/정밀작업판 크롭 편집에서 `obj.x/obj.y`를 이동시키지 않도록 고정(크롭 종료/모드 전환 시 위치 점프 완화)
+  - `finalizeObjectCropDragAnchor`를 월드좌표 보정 로직 없이 히트박스 경계 정규화 전용으로 단순화
+  - `addHitbox`, `apply profile`, `crop 입력/토글/리셋`, 히트박스 숫자 입력 경로에 동일한 경계 클램프를 적용해
+    보이는 박스와 실제 충돌 경계의 불일치 리스크를 축소
+- 오브젝트/히트박스 좌표계 정합성 추가 보정(최신):
+  - 본 맵 오브젝트 렌더 transform 순서를 `rotate -> scale`로 통일해 히트박스/좌표 유틸 기준과 일치시킴
+  - 테스트 런타임(`test-world`)도 동일한 transform 순서로 맞춰, 정밀 작업판/맵/테스트 간 보이는 위치와 적용 위치 불일치 리스크를 축소
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node --check public/jumpmap-editor/test-runtime.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀 작업판 히트박스/크롭 좌표계 정합 보강(최신):
+  - 정밀 작업판 렌더 좌표를 `크롭 오프셋` 기준으로 통일해 맵 화면과 같은 기준에서 박스가 보이도록 보정
+  - 정밀 작업판 `paint/crop/hitbox` 포인터 좌표 변환에 동일 오프셋을 적용해 시각 위치와 실제 적용 좌표 불일치 완화
+  - 정밀 작업판 오버레이 샘플링(`paint`)도 동일 좌표계로 맞춰, 보이는 마스크와 저장 히트박스 생성 위치 오차를 줄임
+- 정밀 작업판 상단 배치 + 저장 단축(최신):
+  - 정밀 작업판 오버레이를 화면 중앙 고정에서 `상단 우측 고정` 배치로 변경해 하단 버튼 접근성을 개선
+  - 정밀 작업판 헤더에 `저장` 버튼을 추가해 메인 `맵 저장` 동작을 즉시 호출
+  - 정밀 작업판 높이를 뷰포트 기준(`calc(100vh - 92px)`)으로 제한해 헤더/컨트롤 가시성을 유지
+- 박스 편집 토글 분리(최신):
+  - 우측 속성 패널에 `박스 보기/작업` 버튼 추가(`보기 ON/OFF`, `작업 ON/OFF`)
+  - `보기 OFF` 시 오브젝트/히트박스/자르기/캐릭터 히트박스 가이드 렌더를 숨김
+  - `작업 OFF` 시 박스 드래그/리사이즈/자르기/회전 등 편집 진입을 차단(시각 확인만 가능)
+- 박스 시각 구분 강화(최신):
+  - 속성 패널에 `오브젝트/히트박스/캐릭터 히트박스/자르기` 범례를 추가해 편집 대상을 즉시 구분 가능
+  - 오브젝트 선택 박스(초록), 히트박스(빨강 계열), 캐릭터 히트박스(파랑 점선), 자르기 박스(주황)로 색상 체계를 분리
+  - 라벨을 `오브젝트 박스`, `자르기 박스`로 명시해 현재 조작 박스 의미를 명확화
+- 선택 대상 모드 분리 보강(최신):
+  - `오브젝트` 모드에서 오브젝트만 선택되도록 제한(히트박스 클릭/레이어 전환 차단)
+  - `히트박스` 모드에서 히트박스만 선택되도록 제한(오브젝트 클릭/레이어 전환 차단)
+  - 정밀 작업판(workbench)에서도 동일 규칙 적용(크롭/히트박스 드래그 자동 모드 전환 제거)
+- 오브젝트 정밀 작업판(workbench) 확대/이동 UX 보강(최신):
+  - `선택 맞춤`/`전체 맞춤` 버튼을 실제 동작에 연결하고, 보기 모드 토글 라벨을 `보기: 선택 중심/전체`로 명확화
+  - 배율 범위를 `0.25x~24x`로 확장해 큰 오브젝트도 작업판에서 전체 보기 가능
+  - `줌 + / -` 버튼 연결 및 `Ctrl(Cmd)+휠` 커서 기준 확대/축소 추가
+  - 작업판 캔버스에 중클릭 드래그 팬(pan) 추가
+  - 작업판 스크롤바 스타일을 명시해 스크롤 위치 인지성을 보강
+- 오브젝트 정밀 작업판에 `히트박스 픽셀 칠하기`(추가/지우기) 모드를 추가:
+  - 오브젝트 내부를 브러시(px)로 칠하면 내부 마스크를 히트박스로 자동 변환
+  - 기존 히트박스를 작업판 진입 시 픽셀 마스크로 역변환해 이어서 세밀 보정 가능
+  - 저장/불러오기 스키마 변경 없이 기존 `hitboxes[]`로 반영되어 호환성 유지
+- 발판 팔레트 필수 보정 목록에 `plate_newstone.png` 추가:
+  - 로컬 팔레트 캐시가 오래된 경우에도 `plate_newstone.png`를 강제 포함해 누락을 방지
+  - 원본/배포 에셋 경로를 재동기화하고 백업을 생성해 롤백 가능 상태 유지
+- 묶음 오브젝트 프리셋 저장/재사용 파이프라인 보강(최신):
+  - 좌측 팔레트에 `묶음 오브젝트 프리셋` 섹션 렌더링/삭제/전체해제 동작 연결
+  - 우측 속성에서 `묶음 저장` 버튼으로 현재 선택 오브젝트(2개 이상)를 프리셋으로 저장
+  - 저장 직후 프리셋을 즉시 배치 모드에서 선택해 재사용 가능
+  - 맵 JSON 저장/불러오기(`map-io`)에 `objectGroupPresets` 필드를 정식 포함
+  - 로컬 슬롯 저장/불러오기에서도 동일 포맷으로 유지되어 코드 수정 후 연속 편집성 개선
+- 오브젝트 집중 편집 모드 보강(최신):
+  - 정밀 작업판 헤더에 `집중 보기 ON/OFF` 토글 추가
+  - 집중 보기 ON에서 선택 오브젝트의 `crop + 히트박스` 경계 중심으로 작업판 뷰를 자동 축소(원본 전체 대신 편집 대상 확대)
+  - 작업판 `화면 맞춤` 버튼 추가(현재 보기 영역 기준 자동 배율 계산)
+  - 작업판 배율 상한을 `12x -> 24x`로 확장해 픽셀 단위 세밀 편집 범위 확대
+  - 집중 보기 상태에 따라 작업판 패널 시각 스타일을 분리해 집중 편집 가독성 개선
+  - 작업판 마우스 세부 조정 추가:
+    - `crop` 박스 본체 드래그로 이동
+    - `crop` 8방향 핸들 드래그로 리사이즈
+    - 활성 히트박스 본체 드래그로 이동
+    - 활성 히트박스 8방향 핸들 드래그로 리사이즈
+    - 드래그 중 작업판 뷰를 고정해 편집 대상이 흔들려 보이는 현상 완화
+  - 작업판 조작 UI 추가:
+    - `오브젝트/히트박스` 선택 버튼 추가
+    - `이동/크기/자르기` 액션 버튼 추가
+    - 작업판 드래그 동작이 선택 대상과 액션 상태를 따르도록 연결
+  - 런타임 안정화:
+    - 작업판 히스토리 호출 오타(`saveHistory`)를 `pushHistory`로 수정
+    - 재렌더 직후 발생하던 `setPointerCapture InvalidStateError`를 안전 캡처 래퍼로 완화
+    - 정밀 작업판 선택 조회(`getWorkbenchObject`)에서 `selectedSpecial='hitbox'`를 차단하지 않도록 수정해
+      히트박스 선택 후 `오브젝트/히트박스`, `이동/크기/자르기` 버튼 및 드래그 편집이 끊기던 문제를 보정
+  - 오브젝트 그룹 편집 추가:
+    - 상단 선택 액션에 `오브젝트 묶기/묶기 해제` 버튼 추가
+    - 그룹 오브젝트 선택 시 그룹 전체를 한 번에 선택/토글하도록 보정
+    - 저장/불러오기 스키마에서 `objects[].groupId`를 유지하도록 파서/정규화 경로 보강
+    - 복사/붙여넣기 시 그룹 ID를 새로 재발급해 원본 그룹과 충돌하지 않도록 처리
+  - 팔레트 자산 반영:
+    - `quiz_plate`의 신규 파일 `plate_newice.png`, `plate_newstone.png`를 `public/quiz_plate`로 반영
+    - `scripts/jumpmap-sync-plates.mjs`로 `public/jumpmap-editor/data/plates.json` 동기화
+    - 백업 생성: `public/jumpmap-editor/data/_backup/plates.20260208183008.json`
+- 잠금 상태 신뢰성 보강(최신):
+  - `playerLocked`를 저장 payload/로드 파서/적용 경로에 포함해 저장/불러오기 후 잠금 상태가 유지되도록 수정
+  - `playerLocked`를 Undo 히스토리 스냅샷에 포함해 잠금/잠금해제 되돌리기 일관성 보강
+  - 초기화 시 플레이어 잠금을 명시적으로 해제(`false`)하도록 통일
+  - 상단 `잠금` 액션(플레이어/오브젝트/히트박스)에서 변경 전에 히스토리를 기록하고, 실변경이 없는 경우 히스토리 항목 제거로 이력 오염 방지
+- 자동 검증 강화(최신):
+  - `scripts/jumpmap-phase6-validate.mjs`에 `player/object/hitbox locked` 파싱 및 roundtrip 유지 검증 추가
+  - 최신 검증 결과: `pass=61, fail=0`
+- 오브젝트 정밀 작업판 실동작 연결:
+  - 오버레이 작업판(배율 2x~12x)에서 선택 오브젝트를 원본 픽셀 기준으로 확대 프리뷰
+  - 크롭 사각형과 히트박스를 작업판에 동시 렌더(활성 히트박스 강조)
+  - 크롭/히트박스를 숫자 입력 및 `±1px` 버튼으로 미세 조정
+  - 작업판 변경은 본 에디터 월드/속성 패널과 즉시 동기화
+  - `Esc`/배경 클릭/닫기 버튼으로 작업판 종료
+- 오브젝트 자르기 기준점/크기 핸들 정합성 보강:
+  - 자르기 드래그 중 기준점을 드래그 시작 시점(`cropStart`)으로 고정해, 자르기 중 원본 스프라이트가 밀려 보이는 현상을 완화
+  - 자르기 드래그 종료 시 월드 좌표 보정(`obj.x/obj.y`)을 적용해, 자르기 모드 해제 후 위치가 튀는 현상을 완화
+  - 오브젝트/캐릭터 `크기` 모드 핸들을 단일 모서리에서 8방향 핸들로 확장해, 히트박스 리사이즈와 유사한 가시성/조작성 확보
+- 크기 조절 기준점 안정화:
+  - 오브젝트 크기 조절 시 중심점을 고정해 축소/확대 중 위치 드리프트를 완화
+  - 히트박스 크기 조절(드래그/숫자 입력 `w/h`) 시 중심 고정 보정 적용
+  - 묶인 히트박스 리사이즈도 그룹 중심을 유지하도록 보정
+- 회전 편집 세밀화:
+  - 오브젝트 회전 드래그를 30도 고정에서 자유 회전으로 전환
+  - 오브젝트 속성 패널에 회전 숫자 입력 + 슬라이더(0~359) 추가
+  - 오브젝트 회전 시 `Shift`를 누르면 15도 스냅 보조 적용
+- 히트박스 회전 편집 지원 추가:
+  - 히트박스별 `rotation(0~359)` 값을 저장/불러오기/프로파일/복제에 포함
+  - 히트박스 클릭 판정을 회전 박스 기준으로 보정(역회전 판정)
+  - 히트박스 오버레이 렌더에 회전 적용
+  - 히트박스에 회전 핸들을 추가해 드래그로 각도 조절 가능
+  - 테스트 물리 충돌 계산에서 회전 히트박스를 월드 좌표로 반영해 AABB 충돌로 정규화
+- 오브젝트 선택/히트박스 선택 타깃 분리를 보정:
+  - 오브젝트 직접 클릭 시 편집 타깃을 항상 `오브젝트`로 전환
+  - 히트박스 편집은 점선 히트박스 레이어 클릭으로만 진입하도록 정리
+  - `크기` 버튼 클릭 시 히트박스 리사이즈로 고정되는 혼선 완화
+  - 프로파일 적용 시 편집 타깃을 `히트박스`로 강제 전환하지 않도록 수정해 오브젝트 `크기/자르기` 흐름 연속성 보강
+- 오브젝트 자르기 정합성 보정:
+  - 자르기 드래그 중 오브젝트 `x/y`를 변경하지 않고 `crop`만 갱신하도록 수정
+  - 자르기 중 오브젝트가 따라 움직여 보이는 문제를 제거하고, 저장 프로필 재적용 시 이미지/히트박스 기준 불일치를 완화
+- 자르기 리셋 정합성 보정:
+  - 오브젝트/캐릭터 `전체로` 버튼이 실제 전체 크롭(`x=0,y=0,w=원본폭,h=원본높이`)으로 복원되도록 수정
+- 자르기 모드 시 시야 충돌 완화:
+  - 오브젝트 자르기 모드에서는 히트박스 오버레이 렌더를 숨겨 시각 혼선을 줄임
+- 저장/불러오기 시작지점 안정화:
+  - 로드 파서에서 `startPoint`를 맵 범위로 즉시 클램프(`x: 0..map.width`, `y: 0..map.height`)
+  - 범위 이탈 데이터는 경고를 남기고 안전 값으로 보정
+- 로드/되돌리기 선택 상태 정합성 보강:
+  - 맵 로드/히스토리 복원 직후 `selectionTarget`을 `object`로 초기화
+  - `selectedSpecial` 잔존 상태를 초기화해 플레이어/히트박스 편집 타깃 꼬임 완화
+- 런타임 정규화 보강(연속성/호환성):
+  - 맵 로드/히스토리 복원/팔레트 메타 갱신 후 공통 정규화 루틴 적용
+  - 오브젝트 회전값을 `0..359`로 표준화하고, 잘못된/빈 히트박스는 기본 히트박스로 대체
+  - 스프라이트 프로파일(scale/crop)을 메타 크기 기준으로 재정규화해 드래프트/로컬 프로파일 불일치 완화
+  - 스프라이트 메타 미로딩/누락 상태에서는 crop을 즉시 축소 클램프하지 않고 보존하도록 보강(로드 시 데이터 손실 방지)
+  - 플레이어 스프라이트 메타 로드 완료 이후에만 player crop 클램프를 적용해 세션 재진입 시 crop 연속성 강화
+- 오브젝트 레이어 선택 강화:
+  - `레이어 선택` 버튼을 오브젝트 포함/제외 토글 방식으로 확장
+  - 겹친 오브젝트 다중 선택 시 레이어 팝업에서 선택 집합을 직접 조정 가능
+- 히트박스 다중선택/그룹 제어 강화:
+  - 다중 선택(`Ctrl/Meta + 클릭`) 상태를 유지하는 `selectedHitboxIndices` 상태 추가
+  - `선택 박스 묶기`, `묶기 해제`, `그룹 잠금/해제` 버튼 추가
+  - 잠금 동작은 선택 히트박스(및 그룹 포함 선택 시 그룹 전체)에 일괄 적용
+- 묶인 히트박스 리사이즈 개선:
+  - 그룹 리사이즈를 개별 박스 기준이 아닌 `그룹 바운딩 박스` 기준으로 변경
+  - 묶인 히트박스가 하나의 형태처럼 비율 유지하며 확대/축소되도록 보정
+- 오브젝트 자르기 시 위치 보정으로 인한 드리프트를 제거하고, 자르기 중 원본 기준으로 핸들을 조작하도록 정렬 안정화.
+- 캐릭터 편집 상태 로컬 프로필 저장/적용/삭제를 추가:
+  - 저장 대상: `playerScale`, `playerCrop`, `playerHitbox`, `playerHitboxOffset`
+  - 저장 위치: `localStorage`(`jumpmap-player-profile`)
+  - UI: 속성 패널 캐릭터 영역에 `현재값 저장/저장값 적용/저장값 삭제` 추가
+  - 초기 진입 시 저장 프로필이 있으면 기본 상태로 복원
+- 로컬 작업 연속성 강화:
+  - 에디터 상태 자동 임시저장(`localStorage`: `jumpmap-editor-draft`)
+  - 렌더 갱신 기준 debounce 저장(300ms) + 페이지 이탈 전 flush 저장
+  - 재진입 시 임시저장 draft를 자동 복원하여 이전 작업 이어서 편집 가능
+  - draft 파싱은 `parseLoadedMapData` 경로를 재사용해 코드 업데이트 후에도 호환 복원 우선 적용
+- 플레이어 편집에서 `선택 대상=오브젝트`/`선택 대상=히트박스`를 시각/동작으로 분리:
+  - 오브젝트 타깃: 캐릭터 크기(스케일) 핸들 제공
+  - 히트박스 타깃: 캐릭터 히트박스 이동/크기 핸들만 제공
+- 자르기 모드에서는 크롭 소스 프리뷰를 별도 렌더하여 "이미지-자르기 박스 불일치" 체감 이슈를 완화.
+- 캐릭터 렌더 앵커를 "원본 프레임 기준"으로 통일하여 자르기 ON/OFF 전환 시 위치가 튀는 현상을 제거.
+- crop 오브젝트의 히트박스 좌표계를 렌더/선택/물리 충돌에서 통일:
+  - 에디터 히트박스 렌더와 클릭 판정에서 `crop(x,y)` 오프셋을 동일 적용
+  - 테스트 물리 충돌 판정에서 동일 오프셋 적용
+  - 테스트 월드 오브젝트 렌더도 crop 시각 상태를 반영
+- 히트박스 리사이즈 최소 크기 클램프를 보정:
+  - `W/N` 핸들 드래그 시 반대쪽 변(anchor) 고정 유지
+  - 리사이즈 핸들 끝점과 실제 적용 히트박스 범위 불일치 완화
+- 오브젝트 bounds 계산(`computeRotatedBounds`)에서 flipH/flipV를 signed scale로 반영:
+  - 반전된 오브젝트의 선택/겹침 판정 범위를 실제 표시 영역과 정렬
+- 점프 물리 입력은 `낙하 속도`, `점프 상승 속도`, `점프 높이` 기준으로 단순화됨.
+- 기본 점프 높이 기본값을 `360 -> 240`으로 하향 조정(신규 세션 기본 체감 점프 높이 완화).
+- 질감 기반 오브젝트 생성 기능 추가:
+  - 팔레트에 `질감 오브젝트 추가`(한지/돌/얼음/단일 색상) 컨트롤을 추가
+  - 생성된 질감 오브젝트는 일반 오브젝트처럼 이동/크기/자르기/히트박스 편집/저장/불러오기 가능
+  - 저장 스키마는 유지하고 `sprite`에 texture 토큰(`__texture__:<name>`)을 사용해 호환성 유지
+  - 테스트 모드 렌더에서도 texture 토큰을 동일하게 해석해 시각 불일치 방지
+- 질감 시스템 단순화/호환 보강:
+  - 질감 오브젝트/배경 질감 선택 옵션을 `한지/돌/얼음/단일 색상`으로 단순화
+  - `돌`/`얼음`은 `quiz_plate`의 `plate_stone2.png`, `plate_ice.png`를 직접 사용
+  - 레거시 질감명(`paper-*`, `stone-*`, `ice-*`, `plate-*`)을 자동 매핑해 기존 저장 맵 호환 유지
+  - `단일 색상` 질감의 색상값(`textureColor`)을 저장/불러오기와 테스트 런타임 렌더에 반영
+  - 질감 오브젝트/크롭 프리뷰 렌더의 기본 배경색을 `transparent`로 유지해 투명 영역 표현을 보존
+- `plate_ice.png`를 실제 서비스 경로 `public/quiz_plate/`에 반영해 팔레트 로드 경로와 일치시킴.
+- 편집 단축키 보강:
+  - 오브젝트 선택 후 `Delete`/`Backspace`로 삭제 가능
+  - `Cmd+Z`(Mac) / `Ctrl+Z`(Windows)로 `되돌리기` 실행
+  - `Cmd+C` / `Ctrl+C`로 선택 오브젝트(다중 선택 포함) 복사
+  - `Cmd+V` / `Ctrl+V`로 복사 오브젝트를 주변 오프셋 위치에 붙여넣기(히트박스/크롭/회전/반전/잠금 포함)
+  - 입력 필드(`input/textarea/select/contenteditable`) 편집 중에는 단축키를 가로채지 않도록 처리
+- 복제 배치 규칙 보정:
+  - 붙여넣기 위치를 대각선 오프셋에서 `오른쪽 수평 오프셋`으로 변경
+  - 복사된 선택 묶음의 실제 월드 폭을 기준으로 stride를 계산해, 세로 위치는 유지하고 겹치지 않게 오른쪽에 생성
+- 테스트 모드 UX 보강:
+  - 테스트 오버레이 상단에 `다시시작` 버튼 추가
+  - `다시시작` 클릭 시 테스트 오버레이를 유지한 채 모든 플레이어를 시작 지점 기준으로 즉시 재스폰
+  - 재시작 시 루프를 안전하게 중지 후 재시작하여 중복 루프/입력 꼬임 방지
+- 초기화/로컬 슬롯 워크플로우 보강:
+  - 상단에 `초기화` 버튼 추가(현재 작업 맵만 기본 상태로 복원, 슬롯 저장 데이터는 유지)
+  - 로컬 `5개 슬롯` 저장/불러오기 추가(`localStorage`: `jumpmap-editor-local-slots-v1`)
+  - 슬롯별 `저장 이름` 입력/수정 기능 추가(드롭다운 표시명/상태 라벨에 반영, Enter로 이름 저장 지원)
+  - 슬롯 저장 데이터는 `buildSavePayload` 기반으로 저장하고 `parseLoadedMapData` 경유로 불러와 스키마 호환성을 유지
+  - 슬롯 상태(비어있음/저장 시각/동작 결과)를 상단 상태 라벨로 표시
+- 발판 팔레트 로더에 필수 항목 보정(`plate_ice.png`)을 추가해 로컬 캐시/서버 목록이 오래되어도 항상 얼음 발판이 노출되도록 보강.
+- 오브젝트 자르기 시 `crop` 변화량으로 `obj.x/obj.y`를 강제 보정하던 로직을 제거해, 자르기 도중 오브젝트가 따라 움직이는 현상을 수정.
+- 오브젝트 자르기 앵커 기준을 `현재 crop`으로 통일:
+  - 자르기 모드 표시 테두리와 이동 모드 표시 테두리 기준점을 동일 좌표계로 정렬
+  - 자르기 모드 해제 시 위치가 튀는(시각 이동) 현상 완화
+- 오브젝트 자르기 종료 시 월드 좌표 보정(`finalizeObjectCropDragAnchor`) 경로를 비활성화:
+  - 자르기 종료 후 `obj.x/obj.y`가 추가 변경되지 않도록 고정
+- 오브젝트 자르기 오버레이의 기준점을 이동 모드와 정렬:
+  - 크롭 오버레이 transform에 `translate(-crop.x, -crop.y)` 로컬 오프셋을 추가
+  - 자르기 모드와 이동 모드 전환 시 오브젝트가 다른 위치로 보이는 불일치(시각 점프) 완화
+- 모드 전환 시 카메라(뷰포트 스크롤) 고정:
+  - `자르기/이동/크기/잠금` 및 `선택 대상(오브젝트/히트박스)` 전환 전 스크롤 좌표를 캡처
+  - 전환 후 동일 스크롤을 범위 클램프 복원해 "시점이 움직이는" 체감 문제 완화
+- 오브젝트 자르기 드래그 중 앵커 고정:
+  - 드래그 시작 시점 `cropStart`를 오버레이 앵커로 사용해, 좌우/상하 자르기 중 스프라이트가 밀려 보이지 않도록 보정
+  - 실제 `selected.crop`은 계속 갱신하되, 프리뷰 기준점은 드래그 동안 고정하여 편집 체감을 안정화
+- 오브젝트 자르기 고정 규칙 강화(최신):
+  - 자르기 오버레이는 `translate(-crop.x, -crop.y)` 기준으로 이동 모드 렌더 앵커와 일치하도록 유지
+  - 자르기 조작은 `crop` 사각형만 변경하며 월드 좌표(`obj.x/obj.y`)를 건드리지 않음
+  - 자르기 모드 종료/프로필 저장/프로필 재적용 시 동일 좌표계로 해석되도록 정렬
+- 기본 카메라 시점을 소폭 아래로 조정:
+  - 기본 `camera.yBias` 값을 `0.35 -> 0.38`로 상향
+  - 초기 진입/에디터 초기화 시 캐릭터 추적 기준점이 약간 더 아래로 잡히도록 보정
+- 카메라 시점을 소폭 상향 조정:
+  - 기본 `camera.yBias` 값을 `0.38 -> 0.34`로 하향
+  - 캐릭터가 화면에서 조금 더 위쪽에 보이도록 기본 추적 기준점을 재조정
+- 카메라 시점을 다시 하향 조정:
+  - 기본 `camera.yBias` 값을 `0.42 -> 0.46`로 상향
+  - 캐릭터가 화면에서 더 위쪽에 보이도록 기본 추적 기준점을 조정
+- 카메라 시점 수동 조절 UI 추가:
+  - 툴바에 `캐릭터 기준 높이(yBias)` 슬라이더/숫자 입력 추가
+  - 저장/불러오기/초기화/히스토리 복원 시 카메라 입력 표시를 동기화
+  - 값 안내: 수치가 클수록 캐릭터가 화면 위쪽에 보이도록 동작
+- 미니맵 접기/펼치기 추가:
+  - 미니맵 우측 상단 토글 버튼으로 즉시 접기/펼치기 가능
+  - 접힘 상태에서는 미니맵 드래그 이동을 비활성화해 오작동 방지
+  - 토글 라벨은 상태(`접기/펼치기`)에 맞춰 자동 갱신
+- 테스트 모드 캐릭터 방향 반전 추가:
+  - 플레이어 상태에 `facing` 값을 도입해 마지막 좌우 입력 방향을 유지
+  - 좌측 이동 시 캐릭터 스프라이트를 좌우 반전(`scaleX(-1)`)해 왼쪽을 바라보도록 수정
+  - 정지 시에는 마지막 바라보는 방향을 유지
+- 테스트 모드 충돌 규칙 강화:
+  - 캐릭터와 오브젝트 히트박스를 AABB 고체 충돌로 처리해 상/하/좌/우 접근 시 관통을 차단
+  - 기존 "위에서 착지" 중심 판정을 유지하면서 측면/천장 충돌도 막히는 동작으로 보강
+  - 더블점프 조건(지면 점프 후 공중 1회)은 기존 규칙을 유지
+- 히트박스/캐릭터 히트박스 리사이즈 정합성 보강:
+  - 크기 조절 시 중심 고정 재보정 로직을 제거하고 핸들 기준(반대편 고정)으로 동작 통일
+  - 보이는 핸들 끝점과 실제 적용 히트박스 범위 불일치 완화
+  - 히트박스 핸들 배치 좌표를 `0/50/100%` 기준으로 재정렬해 시각/적용 경계 정합성 개선
+- 다인 테스트(2~6분할), 가상키, 시작지점 스폰, 커스텀 스크롤바/미니맵이 반영됨.
+- 히트박스 확정 팔레트(프리셋 저장/불러오기) 기능이 반영됨.
+- Phase 1 시작: 히트박스 순수 유틸을 `editor.js`에서 분리(`hitbox-utils.js`)하고 script 로드 순서 반영.
+- Phase 1 Step 2 완료: 회전/좌표 변환 유틸을 `geometry-utils.js`로 분리하고 `editor.js`에서 참조하도록 연결.
+- Phase 2 Step 1 완료: 저장/불러오기 경로를 `map-io-utils.js`로 분리하고 로드 시 스키마 검증/정규화 진입점 추가.
+- Phase 2 Step 2 완료: 로드 경고(warning) 수집/표시 정책 적용(비차단 로드 + 콘솔 상세 + 알림 요약).
+- Phase 3 Step 1 완료: 테스트 모드 런타임(진입/종료/뷰생성/루프/입력)을 `test-runtime.js`로 분리하고 `editor.js`는 브리지 연결만 유지.
+- Phase 3 Step 2 완료: 테스트 물리/충돌/카메라 계산을 `test-physics-utils.js`로 분리하고 `test-runtime.js`는 조립 레이어로 축소.
+- Phase 3 Step 3 완료: 런타임 생성 파라미터를 그룹화(`assets/hooks/geometry`)해 에디터-런타임 의존성 인터페이스를 축소.
+- Phase 4 Step 1 완료: 드래그 중 `renderWorld()` 호출을 프레임 coalescing(`requestRenderWorld`)으로 전환해 과다 재렌더를 완화.
+- Phase 4 Step 2 완료: 드래그 중 `syncProperties()` 호출을 프레임 coalescing(`requestSyncProperties`)으로 전환해 속성패널 과도 갱신을 완화.
+- Phase 4 Step 3 완료: 드래그 종료 시 `flushRenderWorld/flushSyncProperties`를 강제 실행해 마지막 프레임 불일치(선택/핸들/속성) 잔류를 줄임.
+- Phase 5 Step 1 완료: 스프라이트 프로파일(`scale + crop + hitboxes`) 저장/적용 경로를 `editor.js`에 반영하고 레거시(`hitboxPresets + spriteDefaults`)와 양방향 호환 유지.
+- Phase 5 Step 2 완료: 저장 포맷/불러오기 검증 경로에 `spriteProfiles` 스키마를 추가하고, `spriteProfiles` 부재 시 레거시 필드에서 자동 병합.
+- Phase 5 Step 3 완료: 팔레트/확정팔레트 배지와 해제 동작을 프로파일 기준으로 전환(`PF` 배지, 프로파일 전체 해제).
+- Phase 6 Step 1 완료: `restoreHistory`에서 `playerCrop` 누락 복원 버그를 수정해 되돌리기 시 캐릭터 크롭 상태 유실을 방지.
+- Phase 6 Step 2 완료: `buildSavePayload -> parseLoadedMapData` 라운드트립 검증으로 `playerCrop/spriteProfiles` 보존을 재확인.
+- Phase 6 Step 3 완료: 선택 상태 일관성 보정(`ensureSelectionCoherence`)을 추가해 삭제/되돌리기 후 `selectedId/selectedIds/selectedHitboxIndex` 불일치로 인한 편집 오류를 완화.
+- Phase 6 Step 4 완료: `restoreHistory`가 `background/physics`까지 복원하도록 확장하여 되돌리기 동작의 범위를 편집 상태와 일치시킴.
+- Phase 6 Step 5 완료: `scripts/jumpmap-phase6-validate.mjs` 자동 검증 스크립트 추가(구문 검사 + map-io 파싱/호환/라운드트립).
+- Phase 6 Step 6 완료: 자동 검증에 점프 물리 회귀 테스트 추가(지상 점프, 공중점프 1회, 낙하 중 점프 금지, 착지 시 점프 상태 초기화).
+- Phase 6 Step 7 완료: 로컬 우선 운영 경로 정리(`scripts/jumpmap-local-serve.mjs`, `docs/jumpmap-local-workflow.md`) 및 맵 보관 폴더(`public/jumpmap-editor/maps/`) 추가.
+
+## Current Architecture
+- UI: `public/jumpmap-editor/index.html`
+- Style: `public/jumpmap-editor/editor.css`
+- Logic(단일 파일): `public/jumpmap-editor/editor.js`
+- Logic Utils:
+  - `public/jumpmap-editor/hitbox-utils.js`
+  - `public/jumpmap-editor/geometry-utils.js`
+  - `public/jumpmap-editor/map-io-utils.js`
+- Runtime Module:
+  - `public/jumpmap-editor/test-runtime.js`
+- Runtime Physics Utils:
+  - `public/jumpmap-editor/test-physics-utils.js`
+- Asset list: `public/jumpmap-editor/data/plates.json`
+
+## Confirmed Risks
+1. `editor.js` 단일 파일 결합도가 높아 회귀 가능성이 큼.
+2. 드래그 중 `renderWorld()` 전체 재생성으로 성능/깜빡임 리스크가 있음.
+3. 저장 JSON에 대한 스키마 검증/예외 처리 보강 필요.
+4. 테스트 런타임과 에디터 렌더의 정합성 점검(특히 crop/변환) 강화 필요.
+5. 프로파일 편집(저장 후 재적용)과 히트박스 수동 편집 동시 워크플로우의 수동 QA가 아직 부족함.
+
+## Refactor Roadmap (Aligned with plan)
+1. Phase 0: 기준선 체크리스트 고정
+2. Phase 1: 순수 유틸 분리 (무동작 변경)
+3. Phase 2: 저장/불러오기 안정화
+4. Phase 3: 테스트 런타임 분리
+5. Phase 4: 렌더 경량화
+6. Phase 5: 에셋 정규화 + 프리셋 파이프라인
+7. Phase 6: 통합 안정화/문서 동기화
+
+## Immediate Next Tasks
+- Phase 6 통합 안정화:
+  - 로컬 서버 실행: `node scripts/jumpmap-local-serve.mjs`
+  - 체크리스트 실행: `docs/jumpmap-editor-phase6-checklist.md`
+  - 자동 검증 실행: `node scripts/jumpmap-phase6-validate.mjs`
+  - 수동 QA: 프로파일 저장 -> 새 배치 즉시 적용(scale/crop/hitbox) 확인
+  - 수동 QA: 레거시 맵(JSON에 `spriteProfiles` 없음) 로드 시 자동 병합 확인
+  - 수동 QA: 확정팔레트 해제 후 일반 팔레트/기존 오브젝트 무회귀 확인
+  - 수동 QA: 선택 대상(오브젝트/히트박스/플레이어) 전환 반복 시 선택 상태 꼬임 없음 확인
+  - 성능 체크: 대량 오브젝트(>=100)에서 배치/선택/드래그 반응 점검
+  - 수동 QA: `되돌리기`에서 player crop/scale/hitbox 동시 복원 확인
+  - 수동 QA: 캐릭터 프로필 저장 -> 새 세션 재진입 -> 프로필 적용/삭제 동작 확인
+  - 수동 QA: 오브젝트 자르기에서 드래그 중 오브젝트 월드 좌표 고정 확인
+  - 수동 QA: `레이어 선택`에서 겹친 오브젝트 포함/제외 토글 후 선택 집합 유지 확인
+  - 수동 QA: 히트박스 다중 선택 -> 묶기 -> 그룹 리사이즈 시 상대 배치 비율 유지 확인
+  - 수동 QA: 다중 선택 히트박스 그룹 잠금/해제 및 그룹 해제 동작 확인
+  - 수동 QA: 플레이어 `크기` 모드(오브젝트 타깃)와 `히트박스` 모드(히트박스 타깃) 전환 시 핸들/이동 대상 분리 확인
+  - 문서 동기화: 최종 검증 결과를 plan/status에 반영
+
+## Phase 3 Split Candidates (Prepared)
+- Runtime Entry:
+  - `enterTestMode`
+  - `exitTestMode`
+  - `buildTestViews`
+  - `startTestLoop`
+- Runtime Input:
+  - `createVirtualControls`
+  - 가상키 pointer 이벤트 바인딩 블록
+- Runtime Physics/Collision:
+  - `resolveGroundCollision`
+  - 테스트 루프 내부의 점프/낙하/이동 상태 갱신 블록
+- Runtime Camera:
+  - 테스트 루프 내부 `camX/camY` 추적 및 clamp 블록
+- 분리 목표:
+  - `test-runtime.js`(입력/물리/카메라)로 이동
+  - 에디터(`editor.js`)는 진입/종료와 상태 브리지 역할만 유지
+
+## Verification Checklist (Baseline)
+- 오브젝트 배치 후 자동 선택 동작 확인
+- 오브젝트/히트박스/캐릭터 선택 대상 분리 확인
+- 자르기 핸들 동작과 원본 고정 동작 확인
+- 저장 후 재로딩 시 동일한 맵/히트박스/물리값 복원 확인
+- 테스트 모드에서 이동/점프/착지/카메라 추적 확인
+
+## Phase 2 Automated Validation (Node)
+- 실행 방식: `map-io-utils.js`를 Node `vm`으로 로드 후 `parseLoadedMapData` 케이스 검증
+- 결과:
+  - valid payload: `ok`, warning 0
+  - legacy physics(`gravity/maxFallSpeed`): `ok`, warning 발생(호환 변환)
+  - invalid object rows: `ok`, invalid row 제외 + 기본 히트박스 대체
+  - invalid grid size: `ok`, 허용값으로 보정
+  - invalid json: `not ok` 정상 거부
+  - spriteProfiles 포함 payload: `ok`, `spriteProfiles` 유지
+  - spriteProfiles 미포함 + legacy only: `ok`, 자동 병합으로 `spriteProfiles` 생성
+
+## Phase 6 Automated Validation (Node)
+- 실행: `node scripts/jumpmap-phase6-validate.mjs`
+- 현재 결과: `pass=61, fail=0`
+- 추가 물리 검증:
+  - 지상 점프 시 1차 점프 상태 진입
+  - 지상 점프 이후 공중 점프 1회 허용
+  - 낙하 시작 상태에서 점프 입력 무시
+  - 점프 타깃 높이 도달 시 상승 종료
+  - 착지 시 `onGround/jumpsUsed/jumpedFromGround` 초기화
+  - 로드 시 맵 범위를 벗어난 시작지점 클램프 검증
+  - 로드 시 음수/과대 회전값(`rotation`) 표준화 검증
+
+## Note
+- 이 문서는 단계 완료마다 갱신한다.
+- 현재 로컬에는 `package.json`이 없어 `npm run build` 기반 검증이 불가하다. 검증 기준은 `node --check` + Phase6 자동/수동 체크리스트로 유지한다.
+- 저장 파일명은 타임스탬프(`jumpmap-YYYYMMDD-HHMMSS.json`)로 다운로드되어 로컬 버전 관리가 쉬워졌다.
+- `quiz_plate -> plates.json` 동기화 경로 추가:
+  - 로컬 서버 API `GET /__jumpmap/plates.json`로 `quiz_plate` PNG 목록 제공
+  - 에디터 `갱신` 시 서버 목록 우선 반영(실패 시 폴더선택 fallback)
+  - CLI 동기화 스크립트 `scripts/jumpmap-sync-plates.mjs` 추가
+  - 동기화 시 기존 `plates.json` 자동 백업(`public/jumpmap-editor/data/_backup/`)
+- 저장/불러오기 호환성 강화:
+  - 저장 포맷 버전 `v2` 도입(`schema`, `savedAt` 포함)
+  - 레거시 자동 마이그레이션 체인 추가(`v0 -> v1 -> v2`)
+  - 지원 버전보다 높은 파일은 가능한 필드만 로드하고 경고로 안내
+  - draft wrapper(`{ payload: ... }`) 포맷도 동일 파서로 수용
+- 자르기/크기 조절 정합성 보정(최신):
+  - 오브젝트 자르기 중 소스 앵커를 드래그 시작 crop으로 고정해, 자르기 핸들 조작 시 원본 이미지가 따라 움직이는 체감 문제를 완화.
+  - 히트박스 핸들은 `히트박스 타깃 + 크기 모드`일 때만 노출하도록 제한해, 오브젝트 크기 조절과 히트박스 크기 조절이 동시에 보여 혼동되는 문제를 완화.
+  - 검증: `node --check public/jumpmap-editor/editor.js`, `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`).
+- 자르기 모드 종료 위치 점프 보정(추가):
+  - `setSelection`, `toggleSelection`, `setSelectionTarget`, `setSelectionAction`, `cropEnabled` 경로에서 crop 모드 이탈 시 `endObjectCropSession()` 보정 경로를 공통 적용.
+  - 보기/작업 토글(`보기 OFF`, `작업 OFF`)로 crop 모드가 끊기는 경우에도 같은 보정 경로를 적용해 자르기 모드와 일반 모드 간 월드 위치 불일치를 줄임.
+  - `crop` 액션 클릭 시 `히트박스 타깃` 상태를 자동 해제하고 `오브젝트 타깃`으로 전환해, 크기/자르기 조작 시 타깃 혼선 가능성을 낮춤.
+  - 플레이어 crop도 동일한 세션 앵커/종료 보정(`beginPlayerCropSession`, `endPlayerCropSession`)을 적용해, `캐릭터 자르기` 모드 해제 시 스프라이트 위치 점프를 줄임.
+- 히트박스 좌표계 자동 보정(추가):
+  - 배치 직후 오브젝트와 히트박스가 분리되는 사례를 줄이기 위해, `crop`이 있는 데이터에서 히트박스가 크롭 로컬 좌표계(0~crop.w/h)로 저장된 경우를 자동 감지해 원본 좌표계(raw)로 재기준화하도록 보정 추가.
+  - 적용 경로: `normalizeSpriteProfile`, `normalizeRuntimeObject`, `normalizeObjectHitboxesWithinBounds`.
+  - 기대효과: 팔레트 배치 시점에 히트박스가 오브젝트와 즉시 겹쳐 보이고, 레거시/혼합 데이터에서도 좌표계 혼선 회귀를 완화.
+- 단일 히트박스 오프셋 보정 강화(추가):
+  - 로컬 프로파일에 남아 있는 레거시/오염 데이터에서, 단일 히트박스가 오브젝트 경계 대비 크게 어긋난 상태로 배치되는 현상을 보정하기 위해 `maybeSnapDisplacedLargeSingleHitbox` 규칙을 추가.
+  - 적용 경로: `normalizeRuntimeObject`, `normalizeObjectHitboxesWithinBounds`, `cloneObjectWithOptions`.
+  - 동작: "큰 단일 히트박스 + 유의미한 위치 어긋남" 패턴을 감지하면 오브젝트 경계와 동일하게 자동 정렬.
+  - 기대효과: 신규 배치/복제/프리셋 배치에서 히트박스가 오브젝트와 처음부터 분리되어 나타나는 회귀를 축소.
+- 크롭 히트박스 좌표 정규화 안전화(추가):
+  - 증상: 일부 스프라이트에서 배치 직후 히트박스가 오브젝트 대비 일정 칸(예: 8px 스냅 기준 9x11칸) 우하단으로 어긋나는 사례.
+  - 원인: `normalizeHitboxesForCropSpace`가 `+offset` 보정을 과하게 선택해 이미 전역 좌표인 히트박스를 이중 이동시키는 경우가 발생.
+  - 조치: `+offset`은 "크롭 로컬 좌표로 판정된 경우"(`shouldRebaseHitboxesFromCropLocal`)에만 적용, 그 외에는 raw 유지. 과보정 레거시 데이터는 `-offset` 점수 우세 시에만 제한적으로 복구.
+  - 적용 경로: `normalizeHitboxesForCropSpace` (프로파일 로드/런타임 정규화/복제 경로 공통).
+  - 기대효과: 신규 배치 시 오브젝트-히트박스 초기 정렬 일치율 향상, 기존 과보정 프로파일의 자동 복구.
+- 배치 직후 히트박스-오브젝트 분리 회귀 보정(2026-02-10):
+  - 증상: 오브젝트를 배치하자마자 히트박스가 우하단으로 크게 어긋나 보임.
+  - 원인: 크롭 좌표계 자동 추론이 반복 경로에서 과보정되며 `crop` 오프셋이 중복 적용됨.
+  - 조치: 좌표계 정규화를 결정론적으로 변경.
+    - `crop-local -> global` 변환은 명확 감지(`shouldRebaseHitboxesFromCropLocal`)일 때만 적용.
+    - 기존 과보정 데이터 복구(`-offset`)는 점수 우세가 충분히 클 때만 제한 적용.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 배치 초기 오프셋 미세보정 강화(2026-02-10 추가):
+  - 증상: 일부 프로파일에서 `-offset`/`+offset` 후보가 raw 대비 소폭 우세인데, 기존 임계값(`+0.2`) 때문에 보정이 적용되지 않아 배치 직후 히트박스가 어긋남.
+  - 조치: `normalizeHitboxesForCropSpace`의 후보 선택 로직을 `raw/minus/plus` 3개 비교로 확장하고, 우세 판단 임계값을 `0.03`으로 완화.
+  - 기대효과: 레거시/혼합 프로파일의 초기 배치 정렬 정확도 향상.
+  - 검증:
+    - `cd math-net-master-quiz && node --check public/jumpmap-editor/editor.js`
+    - `cd math-net-master-quiz && node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 크롭 히트박스 정규화 결정론 보정(2026-02-10 추가):
+  - 증상: 정밀 작업판에서 맞춘 히트박스가 맵 배치 시점에 다시 재해석되어 오브젝트와 분리되는 사례가 반복됨.
+  - 조치: `normalizeHitboxesForCropSpace`를 우선순위 규칙 기반으로 변경.
+    - 1) 이미 전역 크롭 좌표(`crop.x..crop.x+crop.w`, `crop.y..crop.y+crop.h`)면 유지
+    - 2) 로컬 크롭 좌표(`0..crop.w`, `0..crop.h`)면 `+crop` 1회 변환
+    - 3) 레거시 과이동 데이터는 `-crop` 1회 복구
+    - 4) 모호한 경우에만 점수 비교 fallback(큰 우세일 때만 적용)
+  - 기대효과: 정밀 편집/프로파일 저장 후 맵 배치에서도 히트박스 형태와 위치 일관성 강화.
+  - 검증:
+    - `cd math-net-master-quiz && node --check public/jumpmap-editor/editor.js`
+    - `cd math-net-master-quiz && node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 정밀 작업창 `적용` 동작 명시화(2026-02-10 추가):
+  - 요구: 정밀 제어창에서 `적용`을 누르면 현재 편집 히트박스가 맵 오브젝트에 즉시 반영되길 원함.
+  - 조치:
+    - 작업창 헤더에 `적용` 버튼(`workbench-apply`) 추가.
+    - `적용` 시 현재 선택 오브젝트 기준으로:
+      - (점 기반 생성 중이며 점이 3개 이상이면) 폴리곤 히트박스 커밋
+      - 히트박스 경계 정규화
+      - 맵/속성/정밀창 즉시 재렌더링
+    - `프로파일 적용` 버튼 경로에서도 정밀창이 열려 있으면 즉시 재렌더링.
+  - 기대효과: 정밀창에서 본 히트박스 상태를 별도 단계 없이 현재 맵 오브젝트에 일관되게 적용 가능.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 오브젝트 `회전 모드` 추가(2026-02-12 추가):
+  - 요구: 오브젝트 조작 버튼에 `회전`을 추가하고, 오브젝트 가장자리 드래그로 자유회전.
+  - 조치:
+    - 속성 패널 조작 행에 `회전` 버튼(`action-rotate`) 추가.
+    - 선택 액션 상태(`selectionAction`)에 `rotate`를 연결하고 액션 토글/비활성 로직에 반영.
+    - 오브젝트가 선택된 상태에서 `회전` 모드일 때 오브젝트 외곽(edge) 드래그 핸들을 노출해 자유회전 진입.
+    - Shift 드래그 15도 스냅은 기존 회전 규칙을 그대로 유지.
+  - 적용 파일:
+    - `public/jumpmap-editor/index.html`
+    - `public/jumpmap-editor/editor.css`
+    - `public/jumpmap-editor/editor.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 경사 보행 기본값 상향 및 지면 샘플링 촘촘화(2026-02-14 추가):
+  - 요구: 걷기 가능 경사각을 `60도`까지, 걷기면 샘플 간격을 `6px`으로 고정.
+  - 조치(`public/jumpmap-editor/test-physics-utils.js`):
+    - `DEFAULT_WALKABLE_SLOPE_MAX_ANGLE = 60`, `DEFAULT_GROUND_SAMPLE_SPACING = 6` 추가.
+    - `findGroundSnapTopY` 샘플 X 생성 로직을 고정 비율(20/50/80%)에서 **간격 기반 샘플링(6px 기본)**으로 교체.
+    - `estimateGroundSlope`, `resolveHorizontal`, `detectGroundSupport`, slope-follow 경로에 `sampleSpacing` 전달을 연결.
+    - 경사각이 `walkableSlopeMaxAngle`을 초과하면 수평 보행 입력을 차단하도록 처리.
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+- 맵 방향 확장 + 맵 경계 벽 처리(2026-02-14 추가):
+  - 요구:
+    - 편집 설정에서 맵을 오른쪽/위쪽으로 확장 가능해야 함.
+    - 맵 가장자리는 더 이상 이동 불가한 벽처럼 동작해야 함.
+    - 시점 이동도 맵 바깥으로 나가지 않아야 함.
+  - 조치:
+    - 맵 크기 버튼을 방향 기준으로 명확화:
+      - `오른쪽 +800`, `아래쪽 +3000`, `위쪽 +3000`
+    - `위쪽 +3000` 확장 시:
+      - 맵 높이 증가
+      - 기존 오브젝트/시작지점을 동일량(`+3000`) 하향 이동
+      - 현재 작업 화면 위치를 유지하도록 스크롤 보정
+    - 테스트 런타임 물리에 맵 경계 클램프 추가:
+      - 플레이어 `x/y`를 맵 경계 내로 강제
+      - 좌/우/상단은 벽처럼 차단, 하단 접촉 시 착지 상태 보정
+    - 테스트 루프에서 물리 스텝에 `map`을 전달해 경계 클램프를 활성화.
+  - 적용 파일:
+    - `public/jumpmap-editor/index.html`
+    - `public/jumpmap-editor/editor.js`
+    - `public/jumpmap-editor/test-runtime.js`
+    - `public/jumpmap-editor/test-physics-utils.js`
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=61, fail=0`)
+
+- 오브젝트 스케일 변경 시 로컬 히트박스 결합 보강(2026-02-17 추가):
+  - 요구: 오브젝트를 크게/작게 할 때 히트박스도 오브젝트에 붙어서 함께 동작해야 함.
+  - 조치(`public/jumpmap-editor/editor.js`):
+    - `normalizeLocalHitboxGeometry(obj)` 추가:
+      - 히트박스를 월드로 재배치하지 않고 로컬 좌표계(`x,y,w,h,rotation`)로만 정규화.
+    - 오브젝트 스케일 변경 경로 2곳에 동일 로컬 정규화 연결:
+      - 속성 입력(`updateSelected`의 `scale` 변경)
+      - 핸들 드래그(`objectTransform.type === 'scale'`)
+  - 기대효과:
+    - 스케일 변경 이후에도 히트박스의 오브젝트 내 상대 위치/형상이 안정적으로 유지됨.
+    - 렌더/충돌 단계의 오브젝트 변환(scale/rotation/flip)과 결합 일관성 강화.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node scripts/jumpmap-phase6-validate.mjs`
+
+- 경사각 강제낙하 + 평면 특수영역 런타임 연동(2026-02-17 추가):
+  - 요구:
+    - 경사각 기준으로 `걷기 허용 경사각`과 `강제 낙하 시작각`을 분리해 동작.
+    - 드래그로 만든 평면 특수영역 내부에서는 경사면도 평면처럼 이동 가능.
+  - 조치:
+    - `public/jumpmap-editor/test-physics-utils.js`
+      - `slopeFallStartAngle` 정규화 로직 추가.
+      - `flatZones` 정규화/클램프 로직 추가.
+      - 플레이어 발바닥 샘플 기반 `flatZones` 판정 추가.
+      - 급경사(`angle > slopeFallStartAngle`) 구간에서 지면 부착 해제(강제 낙하) 처리 추가.
+      - 강제 낙하 프레임에서는 즉시 재스냅되는 경로를 차단.
+    - `scripts/jumpmap-phase6-validate.mjs`
+      - `walkableSlopeMaxAngle`, `slopeFallStartAngle`, `flatZones` 파싱 검증 케이스 추가.
+  - 기대효과:
+    - 경사면 규칙을 각도 기준으로 더 명확히 제어 가능.
+    - 특정 구간을 평면처럼 강제 처리해 경사 이동 불편 구간을 지도 편집으로 완화 가능.
+  - 검증:
+    - `node --check public/jumpmap-editor/test-physics-utils.js`
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/map-io-utils.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=67, fail=0`)
+
+- 캐릭터 정밀 작업창 버튼/배율 안정화(2026-02-18 추가):
+  - 증상:
+    - 정밀 작업창에서 버튼이 비활성처럼 동작하는 경우가 있었고, 캐릭터 정밀 편집 진입 시 초기 배율이 과도하게 커 보이는 문제가 있었음.
+  - 조치:
+    - `public/jumpmap-editor/editor.js`
+      - 워크벤치 전용 가이드 가시/편집 판정 추가:
+        - `areWorkbenchGuidesVisible()`
+        - `areWorkbenchGuidesEditable()`
+      - 워크벤치 로직은 전역 `박스 보기/작업` 토글 영향 없이 동작하도록 분리.
+      - 워크벤치 타이틀 동적 갱신 추가:
+        - 캐릭터 선택 시 `캐릭터 정밀 작업판`
+        - 일반 오브젝트 시 `오브젝트 정밀 작업판`
+      - 워크벤치 오픈 직후 `선택 맞춤` 자동 적용(`fitWorkbenchView('focus')`)으로 초기 비율 보정.
+    - `public/jumpmap-editor/index.html`
+      - 워크벤치 타이틀 요소에 `id="workbench-title"` 추가.
+  - 기대효과:
+    - 캐릭터 정밀 작업 진입 시 화면 비율이 즉시 안정화됨.
+    - 전역 박스 편집 토글 상태와 무관하게 워크벤치 버튼 동작 일관성 확보.
+  - 검증:
+    - `node --check public/jumpmap-editor/editor.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=67, fail=0`)
+
+- 점프맵-퀴즈 루프 1차 연결(2026-02-22 추가):
+  - 목적:
+    - 에디터 테스트모드에서 `퀴즈 버튼 -> 브리지 -> 퀴즈 결과 -> 게이지 반영 -> 다음/복귀` 루프를 먼저 검증하고,
+      이후 운영 런타임 분리의 기준 동작으로 사용.
+  - 조치:
+    - `public/jumpmap-editor/game-rule-adapter.js`
+      - 이동 소모를 `dt` 기반으로 계산할 수 있도록 `getActionCost('move', context)` 확장.
+    - `public/jumpmap-editor/integration-bridge.js`
+      - 플레이어별 자원 상태(`gauge`) 저장소 추가(기존 API 호환 유지).
+      - `snapshotForPlayer`, `getPlayerGauge`, `setPlayerGauge` 추가.
+    - `public/jumpmap-editor/test-runtime.js`
+      - 플레이어별 게이지 표시 UI 추가.
+      - 플레이어별 `퀴즈 풀기` 버튼 및 팝업 UI 루프 추가.
+      - 퀴즈코어(`engine.js`, `bank.js`) + 문항 JSON 동적 로드 기반 게이트웨이 연결.
+      - 정답/오답 결과 후 `다음 문제 / 맵으로 복귀` 선택 흐름 추가.
+      - 오답 딜레이 동안 해당 플레이어 선택 버튼 잠금 처리.
+      - 퀴즈 열림/결과 상태에서 해당 플레이어 입력만 차단(다른 플레이어 계속 진행).
+      - 지상 이동/점프에 브리지 기반 게이지 소모 연결(공중 이동 허용 규칙 유지).
+    - `public/jumpmap-editor/editor.css`
+      - 테스트모드 퀴즈 버튼/게이지/팝업 스타일 추가.
+  - 저장 호환성:
+    - 맵 저장 포맷(`version:2`) 변경 없음. 런타임 메모리 상태만 추가.
+  - 검증(정적):
+    - `node --check public/jumpmap-editor/game-rule-adapter.js`
+    - `node --check public/jumpmap-editor/integration-bridge.js`
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node --check public/jumpmap-editor/editor.js`
+  - 수동 확인 필요:
+    - 로컬 `jumpmap-editor` 테스트모드에서 플레이어별 퀴즈 버튼 동작
+    - 오답 3초 딜레이 후 다음/복귀 버튼 활성화
+    - 멀티플레이에서 A 퀴즈 중 B 이동 지속
+    - 게이지 감소/회복이 플레이어별로 분리되는지 확인
+
+- 테스트모드 렌더/퀴즈 UI 성능 점검 및 최적화(2026-02-22 추가):
+  - 목적:
+    - 테스트모드 이동 시 발생하는 버벅임을 줄이기 위해 프레임 루프 내 불필요한 DOM 갱신/배경 repaint를 줄임.
+  - 주요 점검 결과(병목 후보):
+    - `public/jumpmap-editor/test-runtime.js`
+      - `applyTestBackgroundLayer()`가 매 프레임마다 배경 이미지/사이즈/반복/위치 스타일 전체를 재설정.
+      - `updateQuizActionButtons()`가 매 프레임마다 버튼 상태/피드백을 반복 갱신.
+      - 숨김 처리된 게이지 숫자 요소도 매 프레임 텍스트 갱신.
+  - 조치:
+    - 배경 레이어 스타일 캐시(`WeakMap`) 추가:
+      - 배경 설정이 바뀌지 않으면 정적 스타일(backgroundImage/size/repeat/opacity) 재적용 생략.
+      - 패럴랙스 위치(`background-position`)만 필요 시 갱신.
+    - 패럴랙스 배경 위치 정밀도 축소:
+      - `toFixed(2)` -> `toFixed(1)`로 줄여 full-layer repaint 빈도 완화.
+    - 퀴즈 액션 버튼 상태 캐시:
+      - `next/return` 버튼 `disabled` 상태 변경 시에만 DOM 쓰기.
+      - 결과 잠금 카운트다운 피드백도 문구 변경 시에만 갱신.
+      - 잠금 해제 후 결과 피드백 문구가 정상 복구되도록 정리.
+    - `setQuizFeedback()` 캐시:
+      - 동일 메시지/톤 재적용 방지.
+    - 숨김 게이지 숫자 텍스트 갱신 제거.
+  - 검증(정적):
+    - `node --check public/jumpmap-editor/test-runtime.js`
+    - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+  - 수동 확인 필요:
+    - 테스트모드 이동/점프 시 이전 대비 버벅임 감소 체감
+    - 배경 패럴랙스가 유지되면서 자연스럽게 움직이는지
+    - 퀴즈 팝업에서 오답 딜레이 카운트다운/버튼 활성화 타이밍 정상 동작
+## 2026-02-22 (서비스 런처 1차 + 플레이 전용 자동 진입)
+- `public/index.html`를 서비스 시작용 런처로 교체
+  - 인원 선택(1~6)
+  - 퀴즈 프리셋 선택
+  - 게임 선택(점프맵 / 기본 퀴즈)
+  - 캐릭터 선택(점프맵, 현재 세종 1종)
+  - 플레이어 이름 로컬 저장
+- 런처 설정 저장 키 추가: `jumpmap.launcher.setup.v1`
+- `jumpmap-editor`에 플레이 전용 진입 모드 추가
+  - `?launchMode=play&autoStartTest=1`
+  - 에디터 UI 숨기고 테스트 오버레이 자동 시작
+- 테스트런타임 API 보강
+  - `setPlayerCount(count)` 추가 (런처 자동 시작용)
+- 테스트런타임 퀴즈 세션 생성 시 런처 퀴즈 프리셋 반영 훅 추가
+  - `jumpmap-net-30`, `jumpmap-net-12`, `cube-only-24`, `cuboid-only-24`
+- 맵 저장 포맷(`version:2`) 변경 없음
+
+## 2026-02-22 (서비스 런처 1차 보강 - 기본 퀴즈 자동 시작 연결)
+- `public/index.html`
+  - `기본 모드(퀴즈)` 시작 시 `./quiz/?launchMode=play&fromLauncher=1`로 진입하도록 변경
+  - 점프맵 시작에도 `fromLauncher=1` 플래그 추가(출처 식별)
+- `public/quiz/app.js`
+  - 런처 설정 저장 키(`jumpmap.launcher.setup.v1`)를 읽어 기본 퀴즈 자동 시작 훅 추가
+  - 런처 쿼리(`launchMode=play`, `fromLauncher=1`)가 있을 때만 자동 시작하도록 제한해 기존 퀴즈 앱 개발/수동 사용 흐름 유지
+  - 런처 퀴즈 프리셋(`jumpmap-net-30`, `jumpmap-net-12`, `cube-only-24`, `cuboid-only-24`)을 퀴즈 앱 설정으로 변환하는 매핑 추가
+  - 런처 플레이어 수/이름을 `groupNames`로 반영하여 멀티 퀴즈 시작 가능
+- 저장/호환성
+  - 맵 저장 포맷(`version:2`) 영향 없음
+  - 런처 설정은 `localStorage`의 별도 키로 관리
+- 검증(정적)
+  - `node --check public/quiz/app.js`
+
+## 2026-02-22 (로컬 기록 저장 레이어 1차 - 퀴즈 세션 자동 저장)
+- 목적
+  - 서버/DB 없이도 플레이어 이름/기록/정답률/오답문제모음 누적을 위한 로컬 저장 기반을 구축.
+  - 점프맵/기본모드가 공용으로 재사용할 수 있는 저장 모듈 형태로 시작.
+- 조치
+  - `public/shared/local-game-records.js` 추가 (IndexedDB 기반)
+    - DB: `math-net-master-local-records`
+    - stores:
+      - `sessions` (게임 세션 기록)
+      - `players` (플레이어 누적 통계)
+      - `wrongAnswers` (오답 문항 엔트리)
+    - `saveQuizSessionRecord(...)` 구현
+  - `public/quiz/app.js`
+    - `finishAllPlayers()`에서 퀴즈 종료 시 로컬 기록 자동 저장 연결
+    - 저장 실패 시 앱 흐름은 유지하고 콘솔 경고만 출력 (비차단)
+- 저장 호환성
+  - 맵 저장 포맷(`version:2`) 영향 없음
+  - 기존 퀴즈 오답 저장(localStorage) 기능과 병행 가능
+- 검증
+  - `node --check public/shared/local-game-records.js`
+  - `node --check public/quiz/app.js`
+  - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+
+## 2026-02-22 (점프맵 세션 로컬 저장 1차 - 테스트모드 종료/재시작 스냅샷)
+- 목적
+  - 점프맵 테스트/플레이 흐름에서도 로컬 기록 저장 레이어를 재사용해 플레이 결과(높이/퀴즈 사용량/점프 수)를 남기기 위한 연결을 추가.
+  - 프레임 루프 성능에 영향 없도록 종료/재시작/인원변경 시점에만 스냅샷 저장.
+- 조치
+  - `public/jumpmap-editor/test-runtime.js`
+    - `public/shared/local-game-records.js` 동적 import(`ensureLocalRecordsModule`) 추가
+    - 점프맵 세션 기록 런타임 상태(`recordRuntimeState`)를 활용한 세션 시퀀스/중복 저장 방지 처리 추가
+    - 플레이어별 세션 통계 카운터 추가:
+      - `quizAttempts`, `quizCorrect`, `quizWrong`, `jumps`, `doubleJumps`
+    - 퀴즈 제출/점프 소비 시 카운터 집계 연결
+    - `buildTestViews()` 이후 세션 시작 시각 기록
+    - `restartTestMode()`, `exitTestMode()`, 테스트 중 인원 변경 시 현재 세션 스냅샷 저장
+    - 저장 페이로드에 맵/배경 요약 포함:
+      - 맵 크기, 오브젝트 수, 세이브포인트 수, 배경 이미지 경로
+  - `public/shared/local-game-records.js` (이전 단계에서 추가된 `saveJumpmapSessionRecord(...)`)와 연동
+- 저장 호환성
+  - 맵 저장 포맷(`version:2`) 영향 없음
+  - 저장맵 JSON 구조 변경 없음 (점프맵 세션 기록은 IndexedDB 별도 저장)
+- 검증
+  - `node --check public/jumpmap-editor/test-runtime.js`
+  - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+
+## 2026-02-22 (테스트모드 충돌/버벅임 완화 - 루프/재구성 경로 정리)
+- 목적
+  - 테스트 중 인원 변경/재시작 시 루프와 DOM 재구성이 동시에 진행되며 발생할 수 있는 버벅임/엉킴 가능성 완화
+  - 입력 상태가 테스트 전환 사이에 남아 의도치 않은 이동/점프를 유발하는 문제 예방
+- 조치
+  - `public/jumpmap-editor/test-runtime.js`
+    - `rebuildActiveTestViews(reason)` 추가
+      - 현재 세션 기록 저장 → 입력 초기화 → 루프 정지 → 뷰 재구성 → 루프 재시작 순서로 통합
+    - `restartTestMode()` / 테스트 중 인원 변경 경로가 위 헬퍼를 사용하도록 변경
+    - `startTestLoop()` 시작 전 `stopTestLoop()` 호출 추가 (루프 중복 시작 방지)
+    - `enterTestMode()` 중복 진입 가드 추가
+    - `exitTestMode()`에서 입력 초기화/퀴즈 세션 정리/기록 세션 상태 초기화 추가
+- 효과
+  - 재시작/인원변경 시 프레임 루프와 DOM이 엇갈리며 생길 수 있는 끊김/레이스 위험 감소
+  - 테스트 종료 후 재진입 시 키 입력 잔류로 인한 오동작 가능성 감소
+- 검증
+  - `node --check public/jumpmap-editor/test-runtime.js`
+  - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+
+## 2026-02-22 (서비스 플레이 라우터 1차 - /play/ 경계 추가)
+- 목적
+  - 런처(`public/index.html`)가 점프맵 에디터/퀴즈 페이지로 직접 진입하지 않고, 서비스용 플레이 라우터(`/play/`)를 거쳐 게임 실행 경계를 분리.
+  - 추후 `운영용 jumpmap-runtime`로 교체할 자리(진입 계층)를 먼저 확보.
+- 조치
+  - `public/index.html`
+    - 시작 버튼 진입 경로를 `./play/?fromLauncher=1&launchMode=play`로 변경
+  - `public/play/index.html` 추가
+    - 런처 설정 요약 표시 + 자동 라우팅 상태 UI
+    - 설정이 없거나 잘못된 경우 런처 복귀 버튼 제공
+  - `public/play/app.js` 추가
+    - `jumpmap.launcher.setup.v1` 읽기/정규화
+    - 게임 모드별 라우팅:
+      - `jumpmap` -> `../jumpmap-editor/?launchMode=play&fromLauncher=1&autoStartTest=1`
+      - `basic-quiz` -> `../quiz/?launchMode=play&fromLauncher=1`
+- 일관성/충돌 방지 포인트
+  - 기존 저장맵 포맷(`version:2`) 영향 없음
+  - 기존 점프맵 플레이모드/기본 퀴즈 자동 시작 로직은 그대로 재사용 (진입 경로만 `/play/`로 분리)
+  - 추후 운영 런타임 분리 시 `/play/app.js`의 목적지 교체만으로 전환 가능
+- 검증
+  - `node --check public/play/app.js`
+  - `node scripts/jumpmap-phase6-validate.mjs` (`pass=69, fail=0`)
+
+## 2026-02-22 (점프맵 플레이 경계 1차 - /jumpmap-play/ 전용 진입점 추가)
+- 목적
+  - `/play/` 라우터가 점프맵 구현체(`jumpmap-editor` 테스트 플레이 모드)를 직접 알지 않도록, 점프맵 전용 서비스 경계(`/jumpmap-play/`)를 추가.
+  - 추후 `운영용 jumpmap-runtime` 분리 시 런처/플레이 라우터를 다시 뜯지 않고 `/jumpmap-play/` 내부 구현만 교체 가능하도록 준비.
+- 조치
+  - `public/play/app.js`
+    - `jumpmap` 모드 시작 목적지를 `../jumpmap-play/`로 변경
+  - `public/jumpmap-play/index.html` 추가
+    - 점프맵 플레이 준비/요약/오류 복구 UI 추가
+    - 런처/플레이 라우터/로컬 기록 페이지 이동 링크 제공
+  - `public/jumpmap-play/app.js` 추가
+    - `jumpmap.launcher.setup.v1` 읽기/정규화
+    - 점프맵 전용 요약 렌더링
+    - 현재 단계에서는 기존 구현체 재사용:
+      - `../jumpmap-editor/?launchMode=play&fromLauncher=1&autoStartTest=1`로 안전 리디렉트
+  - `public/index.html`, `public/play/index.html`
+    - `로컬 기록 보기` 링크 노출 (기록 조회 UI 접근 경로 연결)
+- 일관성/충돌 방지 포인트
+  - 현재 맵 저장 포맷(`version:2`) 및 저장맵 재사용 흐름 영향 없음
+  - 점프맵 실제 플레이 구현은 기존 테스트 런타임을 그대로 사용하여 회귀 리스크 최소화
+  - 서비스 경계(`/play/` -> `/jumpmap-play/` -> 구현체)를 먼저 고정해 이후 런타임 분리 작업의 충돌 범위를 축소
+- 검증
+  - `node --check public/play/app.js`
+  - `node --check public/jumpmap-play/app.js`
+  - `node --check public/play/records/app.js`
+
+## 2026-02-22 (점프맵 런타임 분리 1차 - 공용 코어 경계 파일 추가)
+- 목적
+  - 테스트 런타임에서 운영용 런타임 분리의 첫 단계로 공용 코어 경계 파일을 추가.
+  - 이후 단계에서 `test-runtime`과 `jumpmap-play`가 동일 코어를 공유하도록 단계적 전환 준비.
+- 조치
+  - `public/shared/jumpmap-runtime-core.js` 추가
+    - 현재는 최소 경계(의존성 묶음)만 제공하여 동작 변화 없이 경계만 고정
+- 일관성/충돌 방지 포인트
+  - 기존 `test-runtime` 동작 변경 없음
+  - 저장맵 포맷(`version:2`) 영향 없음
+- 검증
+  - `node --check public/shared/jumpmap-runtime-core.js`
+
+## 2026-02-22 (플레이어 식별 강화 + 퀴즈 상세 기록 확장)
+- 목적
+  - 동일 이름(플레이어1 등) 반복 시 기록이 섞이는 문제 방지.
+  - 퀴즈에서 선택한 문제 유형/문항 ID를 상세 조회 가능하게 확장.
+  - 오답문항을 A4 활동지 형태로 출력할 수 있는 인쇄 경로 제공.
+- 조치
+  - `public/index.html`
+    - 플레이어 입력에 `번호`(태그) 필드 추가, 요약에 `이름(번호)` 표기
+  - `public/play/app.js`, `public/jumpmap-play/app.js`
+    - 라우터 요약에서도 `이름(번호)` 표시
+  - `public/jumpmap-editor/editor.js`
+    - 런처 `playerTags`를 테스트 런타임 상태에 반영
+  - `public/jumpmap-editor/test-runtime.js`
+    - 점프맵 기록 저장 시 `tag` 포함
+    - 플레이어 표시 이름에 태그 반영
+  - `public/quiz/app.js`
+    - 런처 `playerTags`를 `studentIds`로 반영하여 개인 번호 기반 기록 분리
+  - `public/shared/local-game-records.js`
+    - playerId 생성 시 `name + tag` 결합
+    - 퀴즈 세션에 `questionTypeSummary`, `questionIds` 저장
+    - 오답 기록에 `playerTag` 저장
+  - `public/play/records/index.html`
+    - 인쇄 버튼 추가 + print 스타일 적용
+  - `public/play/records/app.js`
+    - 태그 표기 강화
+    - 퀴즈 세션에서 출제 유형/문항 ID 일부 표시
+- 일관성/충돌 방지 포인트
+  - 맵 포맷(`version:2`) 영향 없음
+  - 기존 기록은 유지되며 새 기록부터 태그가 적용됨
+- 검증
+  - `node --check public/play/app.js`
+  - `node --check public/jumpmap-play/app.js`
+  - `node --check public/jumpmap-editor/test-runtime.js`
+  - `node --check public/shared/local-game-records.js`
+  - `node --check public/play/records/app.js`
+  - `node --check public/quiz/app.js`

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="iceBase" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#d9f3ff"/>
+      <stop offset="100%" stop-color="#a9d8f0"/>
+    </linearGradient>
+    <pattern id="frostStar" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M20 6 V34 M6 20 H34 M10 10 L30 30 M30 10 L10 30" stroke="#ecfbff" stroke-width="1" opacity="0.4"/>
+      <circle cx="8" cy="8" r="1" fill="#ffffff" opacity="0.6"/>
+      <circle cx="30" cy="14" r="0.9" fill="#f6fdff" opacity="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#iceBase)"/>
+  <rect width="256" height="256" fill="url(#frostStar)"/>
+</svg>

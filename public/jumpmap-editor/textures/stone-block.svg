@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <pattern id="block" width="64" height="64" patternUnits="userSpaceOnUse">
+      <rect width="64" height="64" fill="#98a1ad"/>
+      <rect x="2" y="2" width="28" height="26" fill="#848e9b"/>
+      <rect x="34" y="4" width="28" height="24" fill="#a9b1bc"/>
+      <rect x="4" y="34" width="24" height="26" fill="#b8bfc9"/>
+      <rect x="32" y="32" width="30" height="30" fill="#8b95a2"/>
+      <path d="M0 31 H64 M31 0 V64" stroke="#5f6774" stroke-width="1.4" opacity="0.6"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#block)"/>
+</svg>

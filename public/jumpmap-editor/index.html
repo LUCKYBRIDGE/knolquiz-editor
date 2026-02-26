@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>점프맵 에디터</title>
+    <script>
+      (function () {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          if (params.get('launchMode') === 'play') {
+            document.documentElement.classList.add('jumpmap-play-launch');
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="./editor.css" />
+  </head>
+  <body>
+    <header class="top-bar">
+      <div class="title">점프맵 에디터</div>
+      <div class="top-actions">
+        <button class="primary" id="save-map" type="button">저장</button>
+        <button class="secondary" id="load-map" type="button">불러오기</button>
+        <input id="load-file" type="file" accept="application/json" hidden />
+        <button class="secondary" id="reset-map" type="button">초기화</button>
+        <div class="slot-controls">
+          <label for="local-slot-select">로컬 슬롯</label>
+          <select id="local-slot-select">
+            <option value="0">슬롯 1</option>
+            <option value="1">슬롯 2</option>
+            <option value="2">슬롯 3</option>
+            <option value="3">슬롯 4</option>
+            <option value="4">슬롯 5</option>
+          </select>
+          <input id="local-slot-name" type="text" maxlength="24" placeholder="저장 이름" />
+          <button class="secondary" id="slot-rename" type="button">이름 저장</button>
+          <button class="secondary" id="slot-save" type="button">슬롯 저장</button>
+          <button class="secondary" id="slot-load" type="button">슬롯 불러오기</button>
+        </div>
+        <span class="slot-status" id="slot-status">슬롯 1: 비어있음</span>
+        <button class="secondary" id="test-toggle" type="button">테스트 모드</button>
+        <button class="secondary" id="undo" type="button">되돌리기</button>
+      </div>
+    </header>
+
+    <main class="editor-layout">
+      <aside class="panel left" id="palette-panel">
+        <div class="panel-header">
+          <h2>발판 팔레트</h2>
+          <button class="panel-toggle" type="button" data-target="palette-panel">접기</button>
+        </div>
+        <div class="panel-body">
+          <div class="palette-section">
+            <div class="palette-section-header">
+              <span>프로파일 확정 발판</span>
+              <button class="secondary small" id="preset-clear-all" type="button">전체 해제</button>
+            </div>
+            <div class="palette-grid" id="palette-presets"></div>
+          </div>
+          <div class="palette-section">
+            <div class="palette-section-header">
+              <span>묶음 오브젝트 프리셋</span>
+              <button class="secondary small" id="group-preset-clear-all" type="button">전체 해제</button>
+            </div>
+            <div class="palette-grid" id="palette-group-presets"></div>
+          </div>
+          <div class="palette-section">
+            <div class="palette-actions texture-create">
+              <select id="texture-object-type">
+                <option value="hanji">질감: 한지</option>
+                <option value="stone">질감: 돌</option>
+                <option value="ice">질감: 얼음</option>
+                <option value="solid">단일 색상</option>
+              </select>
+              <input type="color" id="texture-object-color" value="#c3b18b" title="단일 색상 선택" />
+              <button class="secondary" id="texture-object-add" type="button">질감 오브젝트 추가</button>
+            </div>
+            <div class="palette-actions">
+              <input class="search" id="palette-search" placeholder="발판 검색" />
+              <button class="secondary" id="palette-refresh" type="button">갱신</button>
+            </div>
+            <div class="palette-grid" id="palette-grid"></div>
+          </div>
+        </div>
+      </aside>
+
+      <section class="stage-wrap">
+        <div class="stage-toolbar" id="stage-toolbar">
+          <div class="stage-toolbar-header">
+            <span>편집 설정</span>
+            <button class="panel-toggle" id="toolbar-toggle" type="button">접기</button>
+          </div>
+          <div class="stage-toolbar-persistent">
+            <div class="toolbar-group">
+              <span class="toolbar-label">빠른 이동</span>
+              <div class="toolbar-row">
+                <button class="secondary" id="jump-start" type="button">시작 지점</button>
+                <button class="secondary" id="jump-top" type="button">맨 위</button>
+                <button class="secondary" id="jump-mid" type="button">중간</button>
+                <button class="secondary" id="jump-bottom" type="button">맨 아래</button>
+              </div>
+              <div class="toolbar-row">
+                <button class="secondary" id="jump-up" type="button">위로 +5000</button>
+                <button class="secondary" id="jump-down" type="button">아래로 +5000</button>
+              </div>
+              <div class="toolbar-row">
+                <span class="toolbar-label">현재 위치</span>
+                <span class="map-position" id="map-position">좌상단 x:0 / y:0</span>
+              </div>
+            </div>
+          </div>
+          <div class="stage-toolbar-body" id="stage-toolbar-body">
+            <div class="toolbar-group settings-group">
+            <span class="toolbar-label">맵 크기</span>
+            <div class="toolbar-row">
+              <label>가로</label>
+              <input type="number" id="map-width" />
+              <label>세로</label>
+              <input type="number" id="map-height" />
+              <button class="secondary" id="apply-map-size" type="button">적용</button>
+            </div>
+            <div class="toolbar-row">
+              <button class="secondary" id="expand-width" type="button">오른쪽 +800</button>
+              <button class="secondary" id="expand-height" type="button">아래쪽 +3000</button>
+              <button class="secondary" id="expand-top" type="button">위쪽 +3000</button>
+            </div>
+            </div>
+            <div class="toolbar-group settings-group">
+            <span class="toolbar-label">작업 모드</span>
+            <div class="toolbar-row">
+              <button class="mode-btn is-active" id="mode-select" type="button">선택/이동</button>
+              <button class="mode-btn" id="mode-place" type="button">배치</button>
+              <button class="mode-btn" id="mode-start" type="button">시작 지점</button>
+            </div>
+            </div>
+            <div class="toolbar-group settings-group">
+              <span class="toolbar-label">편집 옵션</span>
+              <div class="toolbar-row">
+                <label><input type="checkbox" id="opt-auto-base" checked /> 기본 발판 자동 생성</label>
+              </div>
+              <div class="toolbar-row">
+                <label><input type="checkbox" id="opt-auto-scroll" checked /> 시작 지점 자동 이동</label>
+              </div>
+              <div class="toolbar-row">
+                <label><input type="checkbox" id="opt-auto-select" checked /> 배치 후 자동 선택</label>
+              </div>
+            </div>
+            <div class="toolbar-group settings-group">
+            <span class="toolbar-label">보조선/스냅</span>
+            <div class="toolbar-row">
+              <label><input type="checkbox" id="grid-visible" checked /> 격자 표시</label>
+              <label><input type="checkbox" id="grid-snap" checked /> 스냅</label>
+              <select id="grid-size">
+                <option value="8">8px</option>
+                <option value="16">16px</option>
+                <option value="32" selected>32px</option>
+                <option value="64">64px</option>
+              </select>
+            </div>
+            </div>
+            <div class="toolbar-group settings-group">
+            <span class="toolbar-label">배경</span>
+            <div class="toolbar-row">
+              <label>색상</label>
+              <input type="color" id="bg-color" value="#ffffff" />
+              <label>질감</label>
+              <select id="bg-texture">
+                <option value="">없음</option>
+                <option value="hanji">한지</option>
+                <option value="stone">돌</option>
+                <option value="ice">얼음</option>
+                <option value="solid">단일 색상</option>
+              </select>
+              <label class="file-btn">
+                이미지
+                <input type="file" id="bg-image" accept="image/*" hidden />
+              </label>
+              <button class="secondary" id="bg-use-geumgang" type="button">금강전도 적용</button>
+              <button class="secondary" id="bg-clear" type="button">이미지 제거</button>
+            </div>
+            <div class="toolbar-row">
+              <label>배경 투명도</label>
+              <input type="range" id="bg-image-opacity" min="0" max="1" step="0.05" value="1" />
+              <input type="number" id="bg-image-opacity-input" min="0" max="1" step="0.05" value="1" />
+            </div>
+            </div>
+            <div class="toolbar-group settings-group physics-group">
+              <span class="toolbar-label">물리 설정</span>
+              <div class="toolbar-row">
+                <label>낙하 속도</label>
+                <input type="number" id="gravity" value="600" step="10" />
+                <label>점프 높이</label>
+                <input type="number" id="max-fall-speed" value="240" step="10" />
+                <label>점프 상승 속도</label>
+                <input type="number" id="jump-speed" value="1000" step="10" />
+                <label>이동 속도</label>
+                <input type="number" id="move-speed" value="220" step="10" />
+              </div>
+              <div class="toolbar-row">
+                <label><input type="checkbox" id="slope-slide-enabled" checked /> 미끄러짐 처리 사용</label>
+                <label><input type="checkbox" id="flat-inertia-enabled" /> 수평 관성 사용</label>
+                <label>관성 유지율(%)</label>
+                <input type="number" id="flat-inertia-percent" value="88" min="0" max="99" step="1" />
+              </div>
+              <div class="toolbar-row">
+                <label>걷기 허용 경사각</label>
+                <input type="number" id="walkable-slope-max-angle" value="75" min="0" max="90" step="1" />
+                <label>강제 낙하 시작각</label>
+                <input type="number" id="slope-fall-start-angle" value="75" min="0" max="90" step="1" />
+              </div>
+              <div class="toolbar-row">
+                <span class="toolbar-label">경사각 구간별 이동 배율(%)</span>
+                <button class="secondary" id="slope-profile-reset" type="button">기본값</button>
+                <button class="secondary" id="slope-profile-add" type="button">구간 추가</button>
+              </div>
+              <div class="slope-profile-list" id="slope-profile-list"></div>
+              <div class="toolbar-row">
+                <button class="secondary" id="flat-zone-edit-toggle" type="button">평면 특수영역 편집 OFF</button>
+                <button class="secondary" id="flat-zone-clear-all" type="button">평면 특수영역 전체삭제</button>
+                <span class="map-position" id="flat-zone-status">평면 특수영역 0개</span>
+              </div>
+              <div class="physics-result">
+                <span>예상 체공시간 <strong id="jump-airtime">-</strong></span>
+                <span>상승 <strong id="jump-ascent">-</strong></span>
+                <span>낙하 <strong id="jump-descent">-</strong></span>
+                <span>점프 높이 <strong id="jump-height-display">-</strong></span>
+              </div>
+            </div>
+            <div class="toolbar-group settings-group">
+              <span class="toolbar-label">카메라 시점</span>
+              <div class="toolbar-row">
+                <label>캐릭터 기준 높이</label>
+                <input type="range" id="camera-y-bias" min="0.10" max="0.90" step="0.01" value="0.46" />
+                <input type="number" id="camera-y-bias-input" min="0.10" max="0.90" step="0.01" value="0.46" />
+                <span class="map-position" id="camera-y-bias-label">0.46</span>
+              </div>
+              <div class="toolbar-row">
+                <span class="toolbar-label">값이 클수록 캐릭터가 화면 위쪽에 보입니다</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stage-viewport-wrap">
+          <div class="stage-viewport" id="stage-viewport">
+            <div class="grid-overlay" id="grid-overlay"></div>
+            <div class="world" id="world"></div>
+          </div>
+          <div class="selection-box" id="selection-box"></div>
+          <div class="mini-map" id="mini-map">
+            <button class="mini-map-toggle" id="mini-map-toggle" type="button">접기</button>
+            <div class="mini-viewport" id="mini-viewport"></div>
+          </div>
+          <div class="scrollbar scrollbar-x" id="scrollbar-x">
+            <div class="thumb" id="scrollbar-x-thumb"></div>
+          </div>
+          <div class="scrollbar scrollbar-y" id="scrollbar-y">
+            <div class="thumb" id="scrollbar-y-thumb"></div>
+          </div>
+          <div class="layer-picker hidden" id="layer-picker"></div>
+        </div>
+      </section>
+
+      <aside class="panel right" id="prop-panel">
+        <div class="panel-header">
+          <h2>속성</h2>
+          <button class="panel-toggle" type="button" data-target="prop-panel">접기</button>
+        </div>
+        <div class="panel-body">
+          <div class="properties hidden" id="selection-actions">
+            <div class="field quick-top" id="quick-actions-top">
+              <label>빠른 작업</label>
+              <div class="row">
+                <button class="primary" id="quick-open-object-workbench" type="button">정밀 작업창 열기</button>
+                <button class="secondary" id="quick-save-hitbox-preset" type="button">프로파일 저장</button>
+                <button class="secondary" id="quick-apply-hitbox-preset" type="button">프로파일 적용</button>
+                <button class="secondary hidden" id="auto-alpha-hitbox" type="button">PNG 알파 자동 추출</button>
+              </div>
+              <div class="text hidden" id="auto-alpha-status"></div>
+            </div>
+            <div class="field">
+              <label>조작</label>
+              <div class="row">
+                <button class="secondary" id="action-select" type="button">선택</button>
+                <button class="secondary" id="action-move" type="button">이동</button>
+                <button class="secondary" id="action-resize" type="button">크기</button>
+                <button class="secondary" id="action-rotate" type="button">회전</button>
+                <button class="secondary" id="action-crop" type="button">자르기</button>
+                <button class="secondary" id="action-lock" type="button">잠금</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>박스 보기/작업</label>
+              <div class="row">
+                <button class="secondary" id="box-view-toggle" type="button">보기 ON</button>
+                <button class="secondary" id="box-edit-toggle" type="button">작업 ON</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>선택 대상</label>
+              <div class="row">
+                <button class="secondary" id="target-object" type="button">오브젝트</button>
+                <button class="secondary" id="target-hitbox" type="button">히트박스</button>
+                <button class="secondary" id="layer-pick" type="button">레이어 선택</button>
+              </div>
+              <div class="selection-legend">
+                <span class="legend-item object"><i></i>오브젝트</span>
+                <span class="legend-item hitbox"><i></i>히트박스</span>
+                <span class="legend-item player-hitbox"><i></i>캐릭터 히트박스</span>
+                <span class="legend-item crop"><i></i>자르기</span>
+              </div>
+            </div>
+            <div class="field">
+              <label>레이어 순서</label>
+              <div class="row">
+                <button class="secondary" id="order-send-back" type="button">맨 뒤로</button>
+                <button class="secondary" id="order-backward" type="button">한 칸 뒤로</button>
+                <button class="secondary" id="order-forward" type="button">한 칸 앞으로</button>
+                <button class="secondary" id="order-bring-front" type="button">맨 앞으로</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>오브젝트 그룹</label>
+              <div class="row">
+                <button class="secondary" id="group-objects" type="button">오브젝트 묶기</button>
+                <button class="secondary" id="ungroup-objects" type="button">묶기 해제</button>
+              </div>
+              <div class="row">
+                <input type="text" id="group-preset-name" maxlength="32" placeholder="프리셋 이름" />
+                <button class="secondary" id="save-group-preset" type="button">묶음 저장</button>
+              </div>
+            </div>
+          </div>
+          <div class="empty" id="no-selection">오브젝트를 선택하세요.</div>
+          <div class="properties hidden" id="prop-fields">
+            <div class="field">
+              <label>정밀 편집</label>
+              <div class="row">
+                <button class="secondary" id="open-object-workbench" type="button">오브젝트 작업판 열기</button>
+              </div>
+              <div class="text">픽셀 확대 상태에서 크롭/히트박스를 미세 조정합니다.</div>
+            </div>
+            <div class="field">
+              <div class="field-header">
+                <label>히트박스</label>
+                <button class="secondary" id="hitbox-toggle" type="button">비치하기</button>
+              </div>
+              <div class="hitbox-controls" id="hitbox-controls">
+                <div class="hitbox-list" id="hitbox-list"></div>
+                <button class="secondary" id="add-hitbox" type="button">히트박스 추가</button>
+                <button class="secondary danger" id="clear-all-hitboxes" type="button">히트박스 전체 삭제</button>
+                <button class="secondary" id="merge-hitboxes" type="button">붙어있는 박스 합치기</button>
+                <div class="row">
+                  <button class="secondary" id="group-hitboxes" type="button">선택 박스 묶기</button>
+                  <button class="secondary" id="ungroup-hitboxes" type="button">묶기 해제</button>
+                  <button class="secondary" id="lock-hitbox-group" type="button">그룹 잠금/해제</button>
+                </div>
+                <div class="row">
+                  <button class="secondary" id="save-hitbox-preset" type="button">프로파일 저장</button>
+                  <button class="secondary" id="apply-hitbox-preset" type="button">프로파일 적용</button>
+                </div>
+              </div>
+            </div>
+            <div class="field">
+              <div class="row">
+                <button class="secondary" id="duplicate" type="button">복제</button>
+                <button class="secondary danger" id="delete" type="button">삭제</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>이미지</label>
+              <div class="text" id="prop-sprite"></div>
+            </div>
+            <div class="field hidden" id="prop-texture-field">
+              <label>질감 변경</label>
+              <div class="row">
+                <select id="prop-texture-type">
+                  <option value="hanji">한지</option>
+                  <option value="stone">돌</option>
+                  <option value="ice">얼음</option>
+                  <option value="solid">단일 색상</option>
+                </select>
+              </div>
+              <div class="row hidden" id="prop-texture-color-row">
+                <label>색상</label>
+                <input type="color" id="prop-texture-color" value="#c3b18b" />
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-header">
+                <label>이미지 자르기</label>
+                <label><input type="checkbox" id="crop-enabled" /> 사용</label>
+              </div>
+              <div class="hitbox-controls hidden" id="crop-fields">
+                <div class="row">
+                  <input type="number" id="crop-x" placeholder="x" />
+                  <input type="number" id="crop-y" placeholder="y" />
+                  <input type="number" id="crop-w" placeholder="w" />
+                  <input type="number" id="crop-h" placeholder="h" />
+                </div>
+                <button class="secondary" id="crop-reset" type="button">전체로</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>위치</label>
+              <div class="row">
+                <input type="number" id="prop-x" />
+                <input type="number" id="prop-y" />
+              </div>
+            </div>
+            <div class="field">
+              <label>스케일</label>
+              <div class="row">
+                <input type="number" id="prop-scale" min="0.05" max="10" step="0.01" />
+                <button class="secondary" id="save-default-scale" type="button">기본 크기 저장</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>회전 (도)</label>
+              <div class="row">
+                <input type="number" id="prop-rotation" min="0" max="359" step="1" />
+                <input type="range" id="prop-rotation-range" min="0" max="359" step="1" />
+              </div>
+              <div class="text">드래그 회전: 자유 / Shift: 15도 스냅</div>
+            </div>
+            <div class="field">
+              <label>반전</label>
+              <div class="row">
+                <label><input type="checkbox" id="prop-flip-h" /> 좌우</label>
+                <label><input type="checkbox" id="prop-flip-v" /> 상하</label>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="properties hidden" id="player-fields">
+            <div class="field">
+              <label>캐릭터 이미지</label>
+              <div class="text" id="player-sprite">sejong_rightside</div>
+            </div>
+            <div class="field">
+              <label>캐릭터 프로파일</label>
+              <div class="row">
+                <button class="secondary" id="save-player-profile" type="button">현재값 저장</button>
+                <button class="secondary" id="apply-player-profile" type="button">저장값 적용</button>
+                <button class="secondary danger" id="clear-player-profile" type="button">저장값 삭제</button>
+              </div>
+              <div class="text" id="player-profile-status">저장된 프로파일 없음</div>
+            </div>
+            <div class="field">
+              <div class="field-header">
+                <label>캐릭터 이미지 자르기</label>
+                <label><input type="checkbox" id="player-crop-enabled" /> 사용</label>
+              </div>
+              <div class="hitbox-controls hidden" id="player-crop-fields">
+                <div class="row">
+                  <input type="number" id="player-crop-x" placeholder="x" />
+                  <input type="number" id="player-crop-y" placeholder="y" />
+                  <input type="number" id="player-crop-w" placeholder="w" />
+                  <input type="number" id="player-crop-h" placeholder="h" />
+                </div>
+                <button class="secondary" id="player-crop-reset" type="button">전체로</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>캐릭터 크기</label>
+              <div class="row">
+                <input type="number" id="player-scale" min="0.2" max="3" step="0.05" />
+              </div>
+            </div>
+            <div class="field">
+              <label>시작 지점</label>
+              <div class="row">
+                <input type="number" id="start-x" placeholder="x" />
+                <input type="number" id="start-y" placeholder="y" />
+                <button class="secondary" id="start-apply" type="button">이동</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>세이브포인트</label>
+              <div class="row">
+                <input type="text" id="savepoint-name" maxlength="24" placeholder="세이브포인트 이름" />
+                <button class="secondary" id="savepoint-add" type="button">현재 시작지점 저장</button>
+              </div>
+              <div class="row">
+                <select id="savepoint-select">
+                  <option value="">세이브포인트 없음</option>
+                </select>
+                <button class="secondary" id="savepoint-go" type="button">카메라 이동</button>
+                <button class="secondary" id="savepoint-set-start" type="button">시작지점 지정</button>
+                <button class="secondary" id="savepoint-delete" type="button">삭제</button>
+              </div>
+            </div>
+            <div class="field">
+              <label>캐릭터 히트박스</label>
+              <div class="row">
+                <div class="field-mini">
+                  <span>폭</span>
+                  <input type="number" id="player-hitbox-width" min="20" />
+                </div>
+                <div class="field-mini">
+                  <span>높이</span>
+                  <input type="number" id="player-hitbox-height" min="20" />
+                </div>
+                <div class="field-mini">
+                  <span>발 간격</span>
+                  <input type="number" id="player-foot-inset" min="0" />
+                </div>
+              </div>
+              <div class="row">
+                <button class="secondary" id="player-hitbox-point-toggle" type="button">점 찍기 시작</button>
+                <button class="secondary" id="player-hitbox-point-undo" type="button">점 되돌리기</button>
+                <button class="secondary" id="player-hitbox-point-clear" type="button">점 초기화</button>
+                <button class="primary" id="player-hitbox-point-apply" type="button">점 히트박스 적용</button>
+              </div>
+              <div class="text" id="player-hitbox-point-status">점 기반 히트박스: 비활성</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="test-overlay hidden" id="test-overlay">
+      <div class="test-header">
+        <div class="test-title">테스트 모드</div>
+        <div class="test-actions">
+          <span>인원</span>
+          <div class="player-count" id="player-count">
+            <button type="button" data-count="1" class="mode-btn is-active">1</button>
+            <button type="button" data-count="2" class="mode-btn">2</button>
+            <button type="button" data-count="3" class="mode-btn">3</button>
+            <button type="button" data-count="4" class="mode-btn">4</button>
+            <button type="button" data-count="5" class="mode-btn">5</button>
+            <button type="button" data-count="6" class="mode-btn">6</button>
+          </div>
+          <span>스타트 후보</span>
+          <select id="test-savepoint-select">
+            <option value="">시작 지점</option>
+          </select>
+          <button class="secondary" id="test-savepoint-use-start" type="button">해당 지점 시작</button>
+          <button class="secondary" id="test-savepoint-warp" type="button">즉시 이동</button>
+          <label class="test-debug-toggle">
+            <input id="test-debug-hitbox" type="checkbox" />
+            충돌 디버그
+          </label>
+          <button class="secondary" id="test-restart" type="button">다시시작</button>
+          <button class="secondary" id="test-exit" type="button">테스트 종료</button>
+        </div>
+      </div>
+      <div class="test-views" id="test-views"></div>
+    </section>
+
+    <section class="workbench-overlay hidden" id="workbench-overlay">
+      <div class="workbench-panel" id="workbench-panel">
+        <div class="workbench-header">
+          <div class="workbench-title" id="workbench-title">오브젝트 정밀 작업판</div>
+          <div class="workbench-actions">
+            <button class="secondary" id="workbench-focus-toggle" type="button">보기: 선택 중심</button>
+            <button class="secondary" id="workbench-fit-focus" type="button">선택 맞춤</button>
+            <button class="secondary" id="workbench-fit-object" type="button">전체 맞춤</button>
+            <button class="secondary" id="workbench-zoom-out" type="button">-</button>
+            <label>배율</label>
+            <input id="workbench-zoom" type="range" min="0.25" max="24" step="0.25" value="4" />
+            <span id="workbench-zoom-label">4x</span>
+            <button class="secondary" id="workbench-zoom-in" type="button">+</button>
+            <button class="secondary danger" id="workbench-clear-hitboxes" type="button">히트박스 전체 삭제</button>
+            <button class="secondary" id="workbench-undo" type="button">되돌리기</button>
+            <button class="secondary" id="workbench-redo" type="button">다시실행</button>
+            <button class="secondary" id="workbench-apply" type="button">적용</button>
+            <button class="primary" id="workbench-save" type="button">저장</button>
+            <button class="secondary" id="workbench-close" type="button">닫기</button>
+          </div>
+        </div>
+        <div class="workbench-body">
+          <div class="workbench-canvas-wrap" id="workbench-canvas-wrap">
+            <div class="workbench-ruler-corner" id="workbench-ruler-corner" aria-hidden="true"></div>
+            <div class="workbench-ruler workbench-ruler-horizontal" id="workbench-ruler-horizontal" aria-label="수직 가이드 생성 자"></div>
+            <div class="workbench-ruler workbench-ruler-vertical" id="workbench-ruler-vertical" aria-label="수평 가이드 생성 자"></div>
+            <div class="workbench-canvas" id="workbench-canvas"></div>
+          </div>
+          <aside class="workbench-controls" id="workbench-controls">
+            <div class="field" id="workbench-empty">
+              <div class="text">오브젝트를 선택한 뒤 작업판을 여세요.</div>
+            </div>
+            <div class="field hidden" id="workbench-mode-controls">
+              <label>작업 모드</label>
+              <div class="row">
+                <button class="secondary" id="wb-target-object" type="button">오브젝트</button>
+                <button class="secondary" id="wb-target-hitbox" type="button">히트박스</button>
+              </div>
+              <div class="row">
+                <button class="secondary" id="wb-action-move" type="button">이동</button>
+                <button class="secondary" id="wb-action-resize" type="button">크기</button>
+                <button class="secondary" id="wb-action-crop" type="button">자르기</button>
+              </div>
+              <div class="row hidden" id="wb-hitbox-crop-scope-row">
+                <button class="secondary is-active" id="wb-hitbox-crop-all" type="button">전체 히트박스 자르기</button>
+                <button class="secondary" id="wb-hitbox-crop-single" type="button">개별 히트박스 자르기</button>
+                <button class="secondary" id="wb-hitbox-crop-region" type="button">영역 안 히트박스 자르기</button>
+              </div>
+              <div class="row hidden" id="wb-hitbox-crop-region-step-row">
+                <button class="secondary is-active" id="wb-hitbox-region-step-region" type="button">1단계: 영역 정하기</button>
+                <button class="secondary" id="wb-hitbox-region-step-crop" type="button">2단계: 영역 안 히트박스 자르기</button>
+              </div>
+              <div class="text hidden" id="wb-hitbox-crop-region-step-hint">1단계에서 영역을 먼저 정한 뒤 2단계에서 실제 자르기를 진행하세요.</div>
+            </div>
+            <div class="field hidden" id="workbench-guide-controls">
+              <label>보조선</label>
+              <div class="row">
+                <button class="secondary is-active" id="wb-guide-tool-none" type="button">이동</button>
+                <button class="secondary" id="wb-guide-tool-horizontal" type="button">수평선 추가</button>
+                <button class="secondary" id="wb-guide-tool-vertical" type="button">수직선 추가</button>
+              </div>
+              <div class="row">
+                <button class="secondary" id="wb-guide-delete-horizontal" type="button">수평선 삭제</button>
+                <button class="secondary" id="wb-guide-delete-vertical" type="button">수직선 삭제</button>
+              </div>
+              <div class="row">
+                <label><input type="checkbox" id="wb-guide-snap" checked /> 자동 맞춤</label>
+                <button class="secondary" id="wb-guide-clear" type="button">보조선 전체 삭제</button>
+              </div>
+              <div class="text">상단/좌측 자를 클릭하면 보조선이 추가됩니다. 이동 모드에서 드래그로 위치를 조절합니다.</div>
+              <div class="text">자르기/크기 조절 시 보조선에 자동 맞춤됩니다.</div>
+            </div>
+            <div class="field hidden" id="workbench-paint-controls">
+              <label>점 기반 히트박스 생성</label>
+              <div class="row">
+                <button class="secondary is-active" id="wb-paint-tool-poly" type="button">다각형 점 찍기</button>
+                <button class="secondary" id="wb-paint-tool-parallelogram" type="button">평행사변형(3점)</button>
+                <button class="secondary" id="wb-paint-toggle" type="button">생성 OFF</button>
+              </div>
+              <div class="row">
+                <button class="secondary" id="wb-paint-point-undo" type="button">점 취소</button>
+                <button class="secondary" id="wb-paint-point-close" type="button">닫기/생성</button>
+                <button class="secondary" id="wb-paint-point-clear" type="button">초기화</button>
+                <button class="secondary" id="wb-paint-point-insert" type="button">점 사이 점 추가 OFF</button>
+                <button class="secondary" id="wb-paint-edge-slip" type="button">선분 미끄러짐 편집 OFF</button>
+              </div>
+              <div class="text">경계 점을 찍고 닫으면 내부를 채운 단일 다각형 히트박스를 생성합니다.</div>
+              <div class="text">점 사이 점 추가 ON일 때, 기존 다각형 선분을 클릭하면 중간점이 삽입됩니다.</div>
+              <div class="text">선분 미끄러짐 편집 ON일 때, 기존 점 2개를 선택해 그 사이 선분에 미끄러짐을 적용합니다. 선분 클릭으로 ON/OFF 전환도 가능합니다.</div>
+              <div class="text" id="wb-paint-stats">히트박스: -</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <script src="./hitbox-utils.js"></script>
+    <script src="./geometry-utils.js"></script>
+    <script src="./map-io-utils.js"></script>
+    <script src="./test-physics-utils.js"></script>
+    <script src="./game-rule-adapter.js"></script>
+    <script src="./integration-bridge.js"></script>
+    <script src="./test-runtime.js"></script>
+    <script src="./editor.js"></script>
+  </body>
+</html>

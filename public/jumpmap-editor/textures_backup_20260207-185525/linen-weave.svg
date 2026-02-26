@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <pattern id="linen" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#ece5d8"/>
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#cfc6b6" stroke-width="0.8" opacity="0.6"/>
+      <line x1="6" y1="0" x2="6" y2="12" stroke="#d7cfbf" stroke-width="0.7" opacity="0.4"/>
+      <line x1="0" y1="0" x2="12" y2="0" stroke="#c8bea9" stroke-width="0.8" opacity="0.55"/>
+      <line x1="0" y1="6" x2="12" y2="6" stroke="#d4c9b3" stroke-width="0.7" opacity="0.38"/>
+    </pattern>
+  </defs>
+  <rect width="256" height="256" fill="url(#linen)"/>
+</svg>
