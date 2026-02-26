@@ -3,6 +3,19 @@
 Date: 2026-02-08
 
 ## Summary
+- 레포 분리(R7 실작업) split 레포 remote bootstrap/push 템플릿 문서화 1차(최신, 2026-02-26):
+  - `nolquiz-editor`
+    - `docs/repo-operations.md`에 remote bootstrap / first push 명령 템플릿 추가
+    - 최신 커밋: `e3c23be` (`docs: add remote bootstrap and push templates`)
+  - `nolquiz-runtime`
+    - `docs/repo-operations.md`에 remote bootstrap / first push 명령 템플릿 추가
+    - 최신 커밋: `458fbf6` (`docs: add remote bootstrap and push templates`)
+  - 상태:
+    - 두 split 레포 모두 현재 `origin` remote 미설정 (URL 미확정, `TBD` 유지)
+    - URL만 확정되면 문서 템플릿으로 `remote add/set-url` + `push -u origin main` 즉시 실행 가능
+  - 검증(이 턴 기준):
+    - split 레포 git status/log/remote 확인
+    - monorepo 문서 동기화 후 `split-repos` / `verify-split --skip-smoke` 재검증 (아래 최신 항목 참조)
 - 레포 분리(R7 실작업) split 레포 후속 동기화 커밋 정리 1차(최신, 2026-02-26):
   - `nolquiz-editor`
     - 후속 커밋 생성: `034ed0f` (`chore: sync scaffold metadata and status log`)
