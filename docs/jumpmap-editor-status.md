@@ -3,6 +3,19 @@
 Date: 2026-02-08
 
 ## Summary
+- 레포 분리(R7 실작업) split 레포 후속 동기화 커밋 정리 1차(최신, 2026-02-26):
+  - `nolquiz-editor`
+    - 후속 커밋 생성: `034ed0f` (`chore: sync scaffold metadata and status log`)
+    - 포함: `SPLIT_SCAFFOLD.md` 생성시각 갱신 + `docs/jumpmap-editor-status.md` 동기화
+  - `nolquiz-runtime`
+    - 후속 커밋 생성: `15b4692` (`chore: refresh scaffold metadata`)
+    - 포함: `SPLIT_SCAFFOLD.md` 생성시각 갱신
+  - 결과:
+    - 두 split 레포 작업트리 clean 상태 재확보(`main`)
+    - `R7` 운영 이관 실작업 1차(초기 커밋 + 운영 메모 + 후속 동기화 커밋) 정리 완료
+  - 검증(이 턴 기준):
+    - split 레포 git status/log 확인
+    - monorepo 문서 동기화 후 `split-repos` / `verify-split --skip-smoke` 재검증 (아래 최신 항목 참조)
 - 레포 분리(R7 실작업) split 레포 초기 커밋 + 운영 메모 추가 1차(최신, 2026-02-26):
   - `nolquiz-editor`
     - `docs/repo-operations.md` 추가 (remote/publish 운영 메모)
