@@ -867,6 +867,9 @@ const loadPlatesFromDirectory = async () => {
 };
 
 const loadPlatesFromServer = async () => {
+  const host = String(window.location?.hostname || '').toLowerCase();
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+  if (!isLocalHost) return null;
   try {
     const res = await fetch(`/__jumpmap/plates.json?v=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;
