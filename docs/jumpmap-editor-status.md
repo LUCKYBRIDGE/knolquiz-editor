@@ -3,6 +3,23 @@
 Date: 2026-02-08
 
 ## Summary
+- 레포 분리(R7 실작업) split 레포 초기 커밋 + 운영 메모 추가 1차(최신, 2026-02-26):
+  - `nolquiz-editor`
+    - `docs/repo-operations.md` 추가 (remote/publish 운영 메모)
+    - `README.md`에 운영 메모 링크 추가
+    - 초기 커밋 생성: `f87c122` (`chore: initialize nolquiz-editor scaffold`)
+  - `nolquiz-runtime`
+    - `docs/repo-operations.md` 추가 (remote/deploy 운영 메모)
+    - `README.md`에 운영 메모 링크 추가
+    - 초기 커밋 생성: `033d6b4` (`chore: initialize nolquiz-runtime scaffold`)
+  - 공통 상태:
+    - 두 레포 모두 `main` 기준 초기 커밋 완료
+    - `origin` remote는 아직 미설정 (`docs/repo-operations.md`의 `TBD` 항목으로 후속 설정 예정)
+  - 목적:
+    - `R7` 운영 이관 단계에서 split 레포를 “스캐폴드만 존재” 상태에서 “초기 커밋 + 운영 메모 포함” 상태로 승격
+  - 검증(이 턴 기준):
+    - split 레포 git 상태/로그 확인 (`main`, latest commit hash)
+    - monorepo 문서 동기화 후 `split-repos` / `verify-split` 재검증 (아래 최신 항목 참조)
 - 레포 분리(R7 준비) `verify-split` CI 초안 추가 1차(최신, 2026-02-26):
   - `.github/workflows/repo-split-verify.yml` 추가
     - `push(main)` / `pull_request`: `verify-fast` (`split-repos --apply --force-merge` + `verify-split --skip-smoke`)
