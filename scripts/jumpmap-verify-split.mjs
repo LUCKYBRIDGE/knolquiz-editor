@@ -10,8 +10,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
-const DEFAULT_RUNTIME_DIR = path.resolve(projectRoot, '..', 'nolquiz-runtime');
-const DEFAULT_EDITOR_DIR = path.resolve(projectRoot, '..', 'nolquiz-editor');
+const DEFAULT_RUNTIME_DIR = path.resolve(projectRoot, '..', 'knolquiz-runtime');
+const DEFAULT_EDITOR_DIR = path.resolve(projectRoot, '..', 'knolquiz-editor');
 
 const RUNTIME_REQUIRED = [
   'public/index.html',
@@ -102,8 +102,8 @@ const printHelp = () => {
       '  node scripts/jumpmap-verify-split.mjs [options]',
       '',
       'Options:',
-      '  --runtime-dir <dir>   Runtime split repo directory (default: ../nolquiz-runtime)',
-      '  --editor-dir <dir>    Editor split repo directory (default: ../nolquiz-editor)',
+      '  --runtime-dir <dir>   Runtime split repo directory (default: ../knolquiz-runtime)',
+      '  --editor-dir <dir>    Editor split repo directory (default: ../knolquiz-editor)',
       '  --skip-smoke          Skip local server route smoke tests',
       '  --with-browser-e2e    Run optional Playwright browser E2E against runtime split (requires local playwright + chromium)',
       '  --browser-e2e-headed  Pass --headed to browser E2E script (requires GUI session)',

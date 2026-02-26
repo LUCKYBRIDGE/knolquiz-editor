@@ -1,10 +1,10 @@
-# nolquiz-editor Repo Operations (R7)
+# knolquiz-editor Repo Operations (R7)
 
 Date: 2026-02-26
 
 ## 목적
 
-- `nolquiz-editor` 운영/작업 레포에서 맵 제작 원본 관리와 runtime 맵 publish 절차를 고정한다.
+- `knolquiz-editor` 운영/작업 레포에서 맵 제작 원본 관리와 runtime 맵 publish 절차를 고정한다.
 - remote URL, 배포 여부 등 레포별 설정값을 후속 작업 시 빠르게 채울 수 있도록 체크 항목을 남긴다.
 
 ## Remote Setup Memo
@@ -23,7 +23,7 @@ Date: 2026-02-26
 원격 URL 확정 후 아래 템플릿 사용:
 
 ```bash
-cd /Users/baekjiyun/Desktop/WAN/nolquiz-editor
+cd /Users/baekjiyun/Desktop/WAN/knolquiz-editor
 
 # 최초 설정
 git remote add origin <EDITOR_REMOTE_URL>
@@ -59,13 +59,13 @@ git log --oneline -3
 ### Publish 예시
 
 ```bash
-cd /Users/baekjiyun/Desktop/WAN/nolquiz-editor
-node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../nolquiz-runtime --dry-run
-node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../nolquiz-runtime
+cd /Users/baekjiyun/Desktop/WAN/knolquiz-editor
+node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../knolquiz-runtime --dry-run
+node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../knolquiz-runtime
 ```
 
 기본 runtime 타깃:
-- `../nolquiz-runtime/public/shared/maps/jumpmap-01.json`
+- `../knolquiz-runtime/public/shared/maps/jumpmap-01.json`
 
 ## 검증 메모 (권장)
 

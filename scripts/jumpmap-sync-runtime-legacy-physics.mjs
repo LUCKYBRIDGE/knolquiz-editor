@@ -31,8 +31,8 @@ const printHelp = () => {
       'Examples:',
       '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs',
       '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs --check',
-      '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs --runtime-repo ../nolquiz-runtime',
-      '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs --runtime-repo ../nolquiz-runtime --check'
+      '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs --runtime-repo ../knolquiz-runtime',
+      '  node scripts/jumpmap-sync-runtime-legacy-physics.mjs --runtime-repo ../knolquiz-runtime --check'
     ].join('\n')
   );
 };

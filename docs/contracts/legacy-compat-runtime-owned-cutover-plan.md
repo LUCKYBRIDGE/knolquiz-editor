@@ -138,7 +138,7 @@ Top-level buckets:
 
 ## 컷오버 후 fallback 정책 (운영 기준)
 
-- `runtime` split(`nolquiz-runtime`)에서는 `public/jumpmap-editor`가 제거되므로 아래 query는 "개발/monorepo 호환용"으로 취급한다:
+- `runtime` split(`knolquiz-runtime`)에서는 `public/jumpmap-editor`가 제거되므로 아래 query는 "개발/monorepo 호환용"으로 취급한다:
   - `legacyCompatTarget=0` (direct fallback)
   - `legacyCompatSource=editor`
   - `legacyCompatAssetBase=editor`

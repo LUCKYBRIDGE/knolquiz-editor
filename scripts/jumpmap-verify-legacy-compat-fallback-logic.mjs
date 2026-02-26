@@ -10,7 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');
 
-const DEFAULT_RUNTIME_DIR = path.resolve(projectRoot, '..', 'nolquiz-runtime');
+const DEFAULT_RUNTIME_DIR = path.resolve(projectRoot, '..', 'knolquiz-runtime');
 
 const parseArgs = (argv) => {
   const opts = { runtimeDir: DEFAULT_RUNTIME_DIR, help: false };

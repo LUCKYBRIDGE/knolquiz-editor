@@ -8,7 +8,7 @@ Scope: `public/jumpmap-editor/*`
 이 문서는 원래 에디터 Phase 6 수동 점검표이지만, 현재는 레포 분리 `R6` 종료 직전 상태를 함께 기록한다.
 
 ### 0-1) 자동검증으로 완료된 항목 (R6)
-- [x] `nolquiz-runtime` split에서 `public/jumpmap-editor` 제거 컷오버 적용
+- [x] `knolquiz-runtime` split에서 `public/jumpmap-editor` 제거 컷오버 적용
 - [x] runtime legacy compat 기본 경로가 `runtime-owned source + asset-base`로 동작
 - [x] `editor fallback` 요청(`legacyCompatTarget=0`, `legacyCompatSource=editor`, `legacyCompatAssetBase=editor`)의 split runtime auto-recovery 동작 확인
 - [x] `legacy compat` helper/inject/pipeline 자동검증 체인 통합

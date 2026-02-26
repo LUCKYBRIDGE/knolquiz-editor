@@ -5,7 +5,7 @@
 ## Local Run
 
 ```bash
-cd /Users/baekjiyun/Desktop/WAN/nolquiz-editor
+cd /Users/baekjiyun/Desktop/WAN/knolquiz-editor
 node scripts/jumpmap-local-serve.mjs
 ```
 
@@ -20,8 +20,8 @@ node scripts/jumpmap-local-serve.mjs
 ## Publish Runtime Map (to runtime repo)
 
 ```bash
-cd /Users/baekjiyun/Desktop/WAN/nolquiz-editor
-node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../nolquiz-runtime
+cd /Users/baekjiyun/Desktop/WAN/knolquiz-editor
+node scripts/jumpmap-publish-runtime-map.mjs --runtime-repo ../knolquiz-runtime
 ```
 
 ## Operations Notes
