@@ -1783,21 +1783,25 @@
     const hasSpriteGroundContact = (playerState, metrics, obstacles, playerHitboxPolygon) => {
       if (playerState?.onGround) return true;
       if (typeof detectGroundSupport !== 'function') return false;
-      // Make landing visual recovery more sensitive:
-      // - If jump key is already released, allow support probing almost immediately.
-      // - If jump key is still held, only block while clearly ascending.
-      const vy = Number(playerState?.vy) || 0;
-      const jumpHeld = !!playerState?.input?.jumpHeld;
-      if (jumpHeld && vy < -10) return false;
-      if (vy < -36) return false;
       try {
-        return detectGroundSupport(playerState, metrics, obstacles, {
+        // Visual sprite grounding should prioritize actual foot/top contact over input flags.
+        // Use neutral probing to avoid movement-direction bias near platform edges.
+        const supportFootY = detectGroundSupport(playerState, metrics, obstacles, {
           maxUp: 4,
           maxDown: 6,
-          direction: Number(playerState?.vx) || 0,
+          direction: 0,
           sampleSpacing: Number(state?.physics?.groundSampleSpacing) || undefined,
           playerHitboxPolygon
-        }) !== null;
+        });
+        if (supportFootY == null) return false;
+        const footY = (Number(playerState?.y) || 0) + (Number(metrics?.height) || 0);
+        const gap = supportFootY - footY;
+        const vy = Number(playerState?.vy) || 0;
+        // If the feet are effectively touching a top surface, switch out of jump/fall quickly.
+        if (gap >= -2 && gap <= 6) return true;
+        // While strongly ascending, avoid false grounded visuals from nearby but not-contacting tops.
+        if (vy < -24 && gap > 1.5) return false;
+        return gap >= -4 && gap <= 8;
       } catch (_error) {
         return false;
       }
