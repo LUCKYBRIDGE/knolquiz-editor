@@ -931,6 +931,7 @@
       playerState.coyoteTimer = 0;
       playerState.walkTimer = 0;
       playerState._spriteGroundLatchSec = 0;
+      playerState._spriteMoveLatchSec = 0;
       playerState.input.left = false;
       playerState.input.right = false;
       playerState.input.jumpQueued = false;
@@ -1214,8 +1215,38 @@
       }
 
       const bind = (btn, key) => {
+        const activePointers = new Set();
+        const setPressedState = (pressed) => {
+          const player = getViews()[index];
+          if (!player) return;
+          if (key === 'jump') {
+            if (pressed) {
+              if (Date.now() <= (Number(player.startGuideUntil) || 0)) return;
+              if (player.state.input.jumpHeld || player.state.input.jumpLock) return;
+              player.state.input.jumpQueued = true;
+              player.state.input.jumpHeld = true;
+              player.state.input.jumpLock = true;
+              return;
+            }
+            player.state.input.jumpHeld = false;
+            player.state.input.jumpLock = false;
+            return;
+          }
+          if (!player.virtualInput) player.virtualInput = { left: false, right: false };
+          player.virtualInput[key] = !!pressed;
+        };
+        const releasePointer = (e) => {
+          if (e?.pointerId != null) activePointers.delete(e.pointerId);
+          if (key === 'jump') {
+            if (activePointers.size === 0) setPressedState(false);
+            return;
+          }
+          setPressedState(activePointers.size > 0);
+        };
+
         btn.addEventListener('pointerdown', (e) => {
           e.preventDefault();
+          if (e.pointerId != null) activePointers.add(e.pointerId);
           if (e.pointerId != null && typeof btn.setPointerCapture === 'function') {
             try {
               btn.setPointerCapture(e.pointerId);
@@ -1223,51 +1254,16 @@
               // best effort only
             }
           }
-          const player = getViews()[index];
-          if (!player) return;
-          if (Date.now() <= (Number(player.startGuideUntil) || 0)) return;
-          if (key === 'jump') {
-            if (player.state.input.jumpHeld || player.state.input.jumpLock) return;
-            player.state.input.jumpQueued = true;
-            player.state.input.jumpHeld = true;
-            player.state.input.jumpLock = true;
-            return;
-          }
-          if (!player.virtualInput) player.virtualInput = { left: false, right: false };
-          player.virtualInput[key] = true;
+          setPressedState(true);
         });
-        btn.addEventListener('pointerup', () => {
-          const player = getViews()[index];
-          if (!player) return;
-          if (key === 'jump') {
-            player.state.input.jumpHeld = false;
-            player.state.input.jumpLock = false;
-            return;
-          }
-          if (!player.virtualInput) player.virtualInput = { left: false, right: false };
-          player.virtualInput[key] = false;
-        });
-        btn.addEventListener('pointerleave', () => {
-          const player = getViews()[index];
-          if (!player) return;
-          if (key === 'jump') {
-            player.state.input.jumpHeld = false;
-            player.state.input.jumpLock = false;
-            return;
-          }
-          if (!player.virtualInput) player.virtualInput = { left: false, right: false };
-          player.virtualInput[key] = false;
-        });
-        btn.addEventListener('pointercancel', () => {
-          const player = getViews()[index];
-          if (!player) return;
-          if (key === 'jump') {
-            player.state.input.jumpHeld = false;
-            player.state.input.jumpLock = false;
-            return;
-          }
-          if (!player.virtualInput) player.virtualInput = { left: false, right: false };
-          player.virtualInput[key] = false;
+        btn.addEventListener('pointerup', releasePointer);
+        btn.addEventListener('pointercancel', releasePointer);
+        btn.addEventListener('lostpointercapture', releasePointer);
+        btn.addEventListener('pointerleave', (e) => {
+          // Touch + pointer capture can emit leave while still pressed.
+          if (e.pointerType === 'touch') return;
+          if (typeof e.buttons === 'number' && e.buttons !== 0) return;
+          releasePointer(e);
         });
       };
 
@@ -1812,18 +1808,23 @@
         ? options.groundedForSprite
         : !!playerState.onGround;
       const vy = Number(playerState?.vy) || 0;
+      const safeDt = Math.max(0, Number(dt) || 0);
       const prevGroundLatch = Math.max(0, Number(playerState?._spriteGroundLatchSec) || 0);
       const nextGroundLatch = groundedForSprite
         ? 0.12
-        : Math.max(0, prevGroundLatch - Math.max(0, Number(dt) || 0));
+        : Math.max(0, prevGroundLatch - safeDt);
       playerState._spriteGroundLatchSec = nextGroundLatch;
       const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
+      const prevMoveLatch = Math.max(0, Number(playerState?._spriteMoveLatchSec) || 0);
+      const nextMoveLatch = hasMoveInput ? 0.08 : Math.max(0, prevMoveLatch - safeDt);
+      playerState._spriteMoveLatchSec = nextMoveLatch;
       const groundedVisual = groundedForSprite || (nextGroundLatch > 0 && Math.abs(vy) < 48);
+      const moveVisual = hasMoveInput || nextMoveLatch > 0;
       if (!groundedVisual && vy < 0) return SPRITES.jump;
       if (!groundedVisual && vy > 0) return SPRITES.fall;
       // Keep walk animation cycling while a direction key is held on the ground,
       // even if horizontal velocity is temporarily near zero (e.g., wall contact).
-      if (groundedVisual && (hasMoveInput || Math.abs(playerState.vx) > 1)) {
+      if (groundedVisual && (moveVisual || Math.abs(playerState.vx) > 1)) {
         playerState.walkTimer += dt;
         const idx = Math.floor(playerState.walkTimer * 14) % SPRITES.walk.length;
         return SPRITES.walk[idx];
