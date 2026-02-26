@@ -1800,11 +1800,14 @@
       const groundedForSprite = typeof options?.groundedForSprite === 'boolean'
         ? options.groundedForSprite
         : !!playerState.onGround;
+      const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
       if (!groundedForSprite && playerState.vy < 0) return SPRITES.jump;
       if (!groundedForSprite && playerState.vy > 0) return SPRITES.fall;
-      if (Math.abs(playerState.vx) > 0) {
+      // Keep walk animation cycling while a direction key is held on the ground,
+      // even if horizontal velocity is temporarily near zero (e.g., wall contact).
+      if (groundedForSprite && (hasMoveInput || Math.abs(playerState.vx) > 1)) {
         playerState.walkTimer += dt;
-        const idx = Math.floor(playerState.walkTimer * 10) % SPRITES.walk.length;
+        const idx = Math.floor(playerState.walkTimer * 14) % SPRITES.walk.length;
         return SPRITES.walk[idx];
       }
       return SPRITES.idle;
