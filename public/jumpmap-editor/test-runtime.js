@@ -930,6 +930,7 @@
       playerState.jumpTargetY = 0;
       playerState.coyoteTimer = 0;
       playerState.walkTimer = 0;
+      playerState._spriteGroundLatchSec = 0;
       playerState.input.left = false;
       playerState.input.right = false;
       playerState.input.jumpQueued = false;
@@ -1810,12 +1811,19 @@
       const groundedForSprite = typeof options?.groundedForSprite === 'boolean'
         ? options.groundedForSprite
         : !!playerState.onGround;
+      const vy = Number(playerState?.vy) || 0;
+      const prevGroundLatch = Math.max(0, Number(playerState?._spriteGroundLatchSec) || 0);
+      const nextGroundLatch = groundedForSprite
+        ? 0.12
+        : Math.max(0, prevGroundLatch - Math.max(0, Number(dt) || 0));
+      playerState._spriteGroundLatchSec = nextGroundLatch;
       const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
-      if (!groundedForSprite && playerState.vy < 0) return SPRITES.jump;
-      if (!groundedForSprite && playerState.vy > 0) return SPRITES.fall;
+      const groundedVisual = groundedForSprite || (nextGroundLatch > 0 && Math.abs(vy) < 48);
+      if (!groundedVisual && vy < 0) return SPRITES.jump;
+      if (!groundedVisual && vy > 0) return SPRITES.fall;
       // Keep walk animation cycling while a direction key is held on the ground,
       // even if horizontal velocity is temporarily near zero (e.g., wall contact).
-      if (groundedForSprite && (hasMoveInput || Math.abs(playerState.vx) > 1)) {
+      if (groundedVisual && (hasMoveInput || Math.abs(playerState.vx) > 1)) {
         playerState.walkTimer += dt;
         const idx = Math.floor(playerState.walkTimer * 14) % SPRITES.walk.length;
         return SPRITES.walk[idx];
