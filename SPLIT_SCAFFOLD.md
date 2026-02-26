@@ -1,6 +1,6 @@
 # 놀퀴즈 Jumpmap Editor (scaffold)
 
-생성 시각: 2026-02-26T07:44:14.058Z
+생성 시각: 2026-02-26T07:53:56.899Z
 소스: /Users/baekjiyun/Desktop/WAN/math-net-master-quiz
 
 ## 포함 경로
@@ -26,7 +26,6 @@
 - scripts/jumpmap-phase6-validate.mjs
 - docs/contracts
 - docs/jumpmap-editor-plan.md
-- docs/jumpmap-editor-status.md
 - docs/jumpmap-editor-guidelines.md
 - docs/jumpmap-editor-phase6-checklist.md
 - docs/jumpmap-local-workflow.md
