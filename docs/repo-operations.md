@@ -78,10 +78,24 @@ node scripts/jumpmap-verify-split.mjs --skip-smoke
 node scripts/jumpmap-verify-split.mjs --skip-smoke --with-browser-e2e --browser-e2e-timeout-ms 30000
 ```
 
+빠른 preflight(권장):
+
+```bash
+cd /Users/baekjiyun/Desktop/WAN/math-net-master-quiz
+node scripts/jumpmap-r7-preflight.mjs
+```
+
+push/CI 직전 게이트(원격/운영값 정리 후):
+
+```bash
+node scripts/jumpmap-r7-preflight.mjs --release-gate
+```
+
 ## Handoff 최소 기록 항목
 
 - publish 실행 명령
 - runtime 타깃 경로
 - 검증 명령 + `pass/fail`
+- readiness 요약 3줄 (`node /Users/baekjiyun/Desktop/WAN/math-net-master-quiz/scripts/jumpmap-check-split-repo-readiness.mjs --summary-lines`)
 - 푸시 커밋 해시(`main` 최신 1~2개)
 - 남은 리스크(있으면 1~3줄)
