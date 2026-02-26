@@ -15,7 +15,7 @@ Date: 2026-02-26
 - [ ] 초기 푸시 (`main`) 완료
 
 기록용:
-- `origin`: (TBD)
+- `origin`: `https://github.com/LUCKYBRIDGE/knolquiz-editor.git`
 - 배포 방식: 직접 배포 없음 (editor authoring repo)
 
 ### Remote Bootstrap Command Template
