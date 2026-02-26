@@ -1781,8 +1781,9 @@
     const hasSpriteGroundContact = (playerState, metrics, obstacles, playerHitboxPolygon) => {
       if (playerState?.onGround) return true;
       if (typeof detectGroundSupport !== 'function') return false;
-      if (playerState?.jumping) return false;
-      if ((Number(playerState?.vy) || 0) < -0.001) return false;
+      // Allow sprite-ground support probing on landing even if `jumping` flag lingers
+      // for a frame. Only block while the character is clearly ascending.
+      if ((Number(playerState?.vy) || 0) < -24) return false;
       try {
         return detectGroundSupport(playerState, metrics, obstacles, {
           maxUp: 2,
