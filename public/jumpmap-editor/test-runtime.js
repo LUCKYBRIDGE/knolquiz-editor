@@ -142,7 +142,8 @@
     const VIRTUAL_CONTROLS_LAYOUT_KEY = 'jumpmap.test.controls.layout.v1';
     const DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
       dpad: { x: 0.012, y: 0.02, scale: 1.0 },
-      jump: { x: 0.112, y: 0.02, scale: 1.0 }
+      jump: { x: 0.112, y: 0.02, scale: 1.0 },
+      quiz: { x: 0.79, y: 0.02, scale: 1.0 }
     });
     const LEGACY_OVERLAP_DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
       dpad: { x: 0.008, y: 0.02, scale: 1.0 },
@@ -209,6 +210,11 @@
         x: Number(layout?.jump?.x),
         y: Number(layout?.jump?.y),
         scale: Number(layout?.jump?.scale)
+      },
+      quiz: {
+        x: Number(layout?.quiz?.x),
+        y: Number(layout?.quiz?.y),
+        scale: Number(layout?.quiz?.scale)
       }
     });
     const clampVirtualControlPos = (value, fallback) => {
@@ -223,7 +229,8 @@
     };
     const ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX = Object.freeze({
       dpad: Object.freeze({ width: 118, height: 64 }),
-      jump: Object.freeze({ width: 88, height: 88 })
+      jump: Object.freeze({ width: 88, height: 88 }),
+      quiz: Object.freeze({ width: 144, height: 70 })
     });
     const VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX = 8;
     const VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX = 12;
@@ -276,11 +283,16 @@
         jump: {
           width: Math.max(1, Number(options.jumpSizePx?.width) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.jump.width),
           height: Math.max(1, Number(options.jumpSizePx?.height) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.jump.height)
+        },
+        quiz: {
+          width: Math.max(1, Number(options.quizSizePx?.width) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.quiz.width),
+          height: Math.max(1, Number(options.quizSizePx?.height) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.quiz.height)
         }
       };
       const result = cloneVirtualControlsLayout(layout);
       result.dpad.scale = clampVirtualControlScale(result.dpad.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.scale);
       result.jump.scale = clampVirtualControlScale(result.jump.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale);
+      result.quiz.scale = clampVirtualControlScale(result.quiz.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.scale);
       const clampConf = (key) => {
         const size = baseSizes[key];
         const conf = result[key];
@@ -289,12 +301,19 @@
       };
       clampConf('dpad');
       clampConf('jump');
+      clampConf('quiz');
       const toRects = () => ({
         dpad: buildVirtualControlRectPx(result.dpad, baseSizes.dpad, viewport),
-        jump: buildVirtualControlRectPx(result.jump, baseSizes.jump, viewport)
+        jump: buildVirtualControlRectPx(result.jump, baseSizes.jump, viewport),
+        quiz: buildVirtualControlRectPx(result.quiz, baseSizes.quiz, viewport)
       });
       let rects = toRects();
-      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+      const controlsOverlap = () => (
+        rectsOverlapWithGap(rects.dpad, rects.jump) ||
+        rectsOverlapWithGap(rects.dpad, rects.quiz) ||
+        rectsOverlapWithGap(rects.jump, rects.quiz)
+      );
+      if (!controlsOverlap()) return result;
 
       const jumpRightCandidateLeft = rects.dpad.right + VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX;
       if ((jumpRightCandidateLeft + rects.jump.width + VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) <= viewport.width) {
@@ -306,7 +325,7 @@
         );
         rects = toRects();
       }
-      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+      if (!rectsOverlapWithGap(rects.dpad, rects.jump) && !controlsOverlap()) return result;
 
       const jumpAboveCandidateBottom = rects.dpad.top + VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX;
       if ((jumpAboveCandidateBottom + rects.jump.height + VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) <= viewport.height) {
@@ -318,7 +337,7 @@
         );
         rects = toRects();
       }
-      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+      if (!rectsOverlapWithGap(rects.dpad, rects.jump) && !controlsOverlap()) return result;
 
       // Final fallback: force split placement near left/right edges while preserving vertical intent.
       result.dpad.x = clampVirtualControlPosBySize(
@@ -333,6 +352,44 @@
         rects.jump.width,
         viewport.width
       );
+      rects = toRects();
+      if (!controlsOverlap()) return result;
+
+      // Keep quiz control near the bottom-right by default and nudge upward only if needed.
+      result.quiz.x = clampVirtualControlPosBySize(
+        (viewport.width - rects.quiz.width - VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) / viewport.width,
+        DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.x,
+        rects.quiz.width,
+        viewport.width
+      );
+      rects = toRects();
+      if (!rectsOverlapWithGap(rects.quiz, rects.jump) && !rectsOverlapWithGap(rects.quiz, rects.dpad)) return result;
+
+      const quizAboveControlsBottom = Math.max(rects.dpad.top, rects.jump.top) + VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX;
+      if ((quizAboveControlsBottom + rects.quiz.height + VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) <= viewport.height) {
+        result.quiz.y = clampVirtualControlPosBySize(
+          quizAboveControlsBottom / viewport.height,
+          result.quiz.y,
+          rects.quiz.height,
+          viewport.height
+        );
+        rects = toRects();
+      }
+      if (!rectsOverlapWithGap(rects.quiz, rects.jump) && !rectsOverlapWithGap(rects.quiz, rects.dpad)) return result;
+
+      // Last resort: pin quiz higher on the right edge.
+      result.quiz.x = clampVirtualControlPosBySize(
+        (viewport.width - rects.quiz.width - VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) / viewport.width,
+        result.quiz.x,
+        rects.quiz.width,
+        viewport.width
+      );
+      result.quiz.y = clampVirtualControlPosBySize(
+        0.18,
+        DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.y,
+        rects.quiz.height,
+        viewport.height
+      );
       return result;
     };
     const normalizeVirtualControlsLayout = (layout) => resolveVirtualControlsLayoutSeparation({
@@ -345,6 +402,11 @@
         x: clampVirtualControlPos(layout?.jump?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.x),
         y: clampVirtualControlPos(layout?.jump?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.y),
         scale: clampVirtualControlScale(layout?.jump?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale)
+      },
+      quiz: {
+        x: clampVirtualControlPos(layout?.quiz?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.x),
+        y: clampVirtualControlPos(layout?.quiz?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.y),
+        scale: clampVirtualControlScale(layout?.quiz?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.scale)
       }
     });
     const loadVirtualControlsLayout = () => {
@@ -897,6 +959,11 @@
           x: clampVirtualControlPos(controlsLayoutState.layout?.jump?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.x),
           y: clampVirtualControlPos(controlsLayoutState.layout?.jump?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.y),
           scale: clampVirtualControlScale(controlsLayoutState.layout?.jump?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale)
+        },
+        quiz: {
+          x: clampVirtualControlPos(controlsLayoutState.layout?.quiz?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.x),
+          y: clampVirtualControlPos(controlsLayoutState.layout?.quiz?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.y),
+          scale: clampVirtualControlScale(controlsLayoutState.layout?.quiz?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.scale)
         }
       }, {
         viewportWidth: Math.max(1, Number(controlsRect?.width) || controls.clientWidth || 0),
@@ -908,6 +975,10 @@
         jumpSizePx: {
           width: controls._jumpBox?.offsetWidth,
           height: controls._jumpBox?.offsetHeight
+        },
+        quizSizePx: {
+          width: controls._quizBox?.offsetWidth,
+          height: controls._quizBox?.offsetHeight
         }
       });
       const applyBox = (box, conf) => {
@@ -918,6 +989,7 @@
       };
       applyBox(controls._dpadBox, effective.dpad);
       applyBox(controls._jumpBox, effective.jump);
+      applyBox(controls._quizBox, effective.quiz);
     };
     const syncVirtualControlsLayoutViews = () => {
       getViews().forEach((view) => applyVirtualControlsLayoutToView(view));
@@ -1071,7 +1143,7 @@
       return world;
     };
 
-    const createControls = (index) => {
+    const createControls = (index, quizButton = null) => {
       const wrap = document.createElement('div');
       wrap.className = 'virtual-controls';
       const configPanel = document.createElement('div');
@@ -1123,6 +1195,22 @@
       jumpBox.appendChild(jumpLabel);
       jumpBox.appendChild(jumpWrap);
       jumpBox.appendChild(jumpResize);
+
+      let quizBox = null;
+      let quizResize = null;
+      if (quizButton) {
+        quizBox = document.createElement('div');
+        quizBox.className = 'control-box control-box-quiz';
+        const quizLabel = document.createElement('div');
+        quizLabel.className = 'control-box-label';
+        quizLabel.textContent = '퀴즈';
+        quizResize = document.createElement('div');
+        quizResize.className = 'control-box-resize';
+        quizResize.title = '크기 조절';
+        quizBox.appendChild(quizLabel);
+        quizBox.appendChild(quizButton);
+        quizBox.appendChild(quizResize);
+      }
 
       const bind = (btn, key) => {
         btn.addEventListener('pointerdown', (e) => {
@@ -1195,8 +1283,10 @@
       };
       bindBoxEditor(dpadBox, 'dpad');
       bindBoxEditor(jumpBox, 'jump');
+      if (quizBox) bindBoxEditor(quizBox, 'quiz');
       dpadResize.addEventListener('pointerdown', (e) => beginVirtualControlBoxEdit(e, wrap, 'dpad', 'resize'));
       jumpResize.addEventListener('pointerdown', (e) => beginVirtualControlBoxEdit(e, wrap, 'jump', 'resize'));
+      if (quizResize) quizResize.addEventListener('pointerdown', (e) => beginVirtualControlBoxEdit(e, wrap, 'quiz', 'resize'));
 
       editToggle.addEventListener('click', () => {
         controlsLayoutState.editMode = !controlsLayoutState.editMode;
@@ -1211,11 +1301,13 @@
       wrap.appendChild(configPanel);
       wrap.appendChild(dpadBox);
       wrap.appendChild(jumpBox);
+      if (quizBox) wrap.appendChild(quizBox);
       wrap._configPanel = configPanel;
       wrap._editToggle = editToggle;
       wrap._resetBtn = resetBtn;
       wrap._dpadBox = dpadBox;
       wrap._jumpBox = jumpBox;
+      wrap._quizBox = quizBox;
       return wrap;
     };
 
@@ -1761,15 +1853,17 @@
           players.push({ player, img, nameTag, debugHitbox, index: j });
         }
 
-        const controls = createControls(i);
+        const quizUi = createQuizUi();
+        const controls = createControls(i, quizUi.quizButton);
         view.appendChild(controls);
+        const topHud = document.createElement('div');
+        topHud.className = 'test-top-hud';
         const heightInfo = document.createElement('div');
         heightInfo.className = 'test-height-info';
         heightInfo.textContent = '높이 0.00m · 최고 0.00m';
-        view.appendChild(heightInfo);
-        const quizUi = createQuizUi();
-        view.appendChild(quizUi.gaugeInfo);
-        view.appendChild(quizUi.quizButton);
+        topHud.appendChild(quizUi.gaugeInfo);
+        topHud.appendChild(heightInfo);
+        view.appendChild(topHud);
         view.appendChild(quizUi.panel);
         const startGuide = createStartGuideUi();
         view.appendChild(startGuide);
@@ -1800,6 +1894,7 @@
           world,
           players,
           controls,
+          topHud,
           heightInfo,
           quizUi,
           startGuide,

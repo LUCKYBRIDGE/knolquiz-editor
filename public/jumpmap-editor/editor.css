@@ -1638,10 +1638,23 @@ body.play-launch .test-header {
   pointer-events: none;
 }
 
-.test-height-info {
+.test-top-hud {
   position: absolute;
-  top: 54px;
+  top: 8px;
   left: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  z-index: 31;
+  pointer-events: none;
+}
+
+.test-height-info {
+  position: relative;
+  top: auto;
+  left: auto;
   padding: 12px 30px;
   border-radius: 999px;
   border: 3px solid rgba(12, 78, 153, 0.34);
@@ -1650,16 +1663,18 @@ body.play-launch .test-header {
   font-size: 36px;
   font-weight: 800;
   line-height: 1.2;
-  z-index: 31;
+  z-index: auto;
   pointer-events: none;
+  max-width: min(100%, 700px);
+  white-space: nowrap;
 }
 
 .test-gauge-info {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  right: 144px;
-  width: auto;
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  width: min(100%, 700px);
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
@@ -1669,7 +1684,7 @@ body.play-launch .test-header {
   border: none;
   background: transparent;
   color: #9a3412;
-  z-index: 31;
+  z-index: auto;
   pointer-events: none;
 }
 
@@ -1709,10 +1724,7 @@ body.play-launch .test-header {
 }
 
 .test-quiz-button {
-  position: absolute;
-  right: 8px;
-  top: 70px;
-  bottom: auto;
+  position: static;
   min-width: 128px;
   min-height: 54px;
   padding: 8px 14px;
@@ -1722,9 +1734,12 @@ body.play-launch .test-header {
   color: #3b2a14;
   font-size: 17px;
   font-weight: 900;
-  z-index: 140;
+  z-index: auto;
   box-shadow: 0 4px 0 rgba(76, 46, 15, 0.22);
   pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .test-quiz-button:disabled {
@@ -2017,30 +2032,30 @@ body.play-launch .test-header {
   cursor: nwse-resize;
   pointer-events: auto;
   touch-action: none;
+  color: rgba(37, 99, 235, 0.95);
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .control-box-resize::before,
 .control-box-resize::after {
-  content: "";
   position: absolute;
-  background: rgba(37, 99, 235, 0.9);
-  border-radius: 1px;
 }
 
 .control-box-resize::before {
-  width: 8px;
-  height: 2px;
-  right: 4px;
-  top: 9px;
-  transform: rotate(-45deg);
+  content: "⤢";
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(37, 99, 235, 0.95);
+  font-size: 13px;
+  font-weight: 900;
 }
 
 .control-box-resize::after {
-  width: 2px;
-  height: 8px;
-  right: 7px;
-  top: 6px;
-  transform: rotate(-45deg);
+  content: none;
 }
 
 .virtual-controls.is-edit .control-box-resize {
@@ -2048,7 +2063,8 @@ body.play-launch .test-header {
 }
 
 .dpad,
-.jump-btn {
+.jump-btn,
+.control-box-quiz .test-quiz-button {
   pointer-events: auto;
 }
 
@@ -2072,29 +2088,45 @@ body.play-launch .test-header {
   font-weight: 800;
 }
 
+.control-box-quiz .test-quiz-button {
+  min-width: 128px;
+  min-height: 54px;
+  width: 128px;
+  height: 54px;
+  font-size: 17px;
+  padding: 8px 14px;
+}
+
 .virtual-controls.is-edit .dpad button,
-.virtual-controls.is-edit .jump-btn button {
+.virtual-controls.is-edit .jump-btn button,
+.virtual-controls.is-edit .control-box-quiz .test-quiz-button {
   pointer-events: none;
 }
 
 @media (max-width: 1200px) {
+  .test-top-hud {
+    top: 6px;
+    left: 6px;
+    right: 6px;
+    gap: 4px;
+  }
   .test-height-info {
     font-size: 26px;
     padding: 8px 18px;
+    max-width: min(100%, 520px);
   }
   .test-gauge-info {
-    top: 52px;
-    right: 106px;
-    width: auto;
+    width: min(100%, 520px);
     padding: 0;
   }
   .test-gauge-bar {
     height: 10px;
   }
-  .test-quiz-button {
-    top: 52px;
-    min-width: 92px;
-    min-height: 42px;
+  .control-box-quiz .test-quiz-button {
+    width: 102px;
+    min-width: 102px;
+    height: 44px;
+    min-height: 44px;
     font-size: 13px;
     padding: 6px 10px;
   }
@@ -2166,18 +2198,27 @@ body.play-launch .test-header {
   padding: 2px;
 }
 
-.test-views[data-player-count]:not([data-player-count="1"]) .test-height-info {
-  top: clamp(30px, 9.5cqw, 52px);
+.test-views[data-player-count]:not([data-player-count="1"]) .test-top-hud {
+  top: 6px;
   left: 6px;
+  right: 6px;
+  gap: clamp(3px, 0.9cqw, 6px);
+}
+
+.test-views[data-player-count]:not([data-player-count="1"]) .test-height-info {
+  top: auto;
+  left: auto;
   padding: clamp(6px, 1.8cqw, 10px) clamp(10px, 3.2cqw, 16px);
   font-size: clamp(12px, 4.2cqw, 24px);
   border-width: 2px;
+  max-width: min(100%, 100%);
 }
 
 .test-views[data-player-count]:not([data-player-count="1"]) .test-gauge-info {
-  top: 6px;
-  left: 6px;
-  right: clamp(82px, 28cqw, 124px);
+  top: auto;
+  left: auto;
+  right: auto;
+  width: min(100%, 100%);
   padding: 0;
   gap: clamp(4px, 1.2cqw, 8px);
   border: none;
@@ -2193,10 +2234,10 @@ body.play-launch .test-header {
 }
 
 .test-views[data-player-count]:not([data-player-count="1"]) .test-quiz-button {
-  top: clamp(38px, 12cqw, 56px);
-  right: 6px;
   min-width: clamp(70px, 24cqw, 116px);
+  width: clamp(70px, 24cqw, 116px);
   min-height: clamp(28px, 9cqw, 46px);
+  height: clamp(28px, 9cqw, 46px);
   padding: clamp(4px, 1.2cqw, 8px) clamp(6px, 1.8cqw, 12px);
   border-radius: 10px;
   font-size: clamp(10px, 2.9cqw, 16px);
