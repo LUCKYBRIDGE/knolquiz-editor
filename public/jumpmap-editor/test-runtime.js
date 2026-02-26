@@ -91,6 +91,7 @@
       createPlayerState,
       getSpawnPosition: computeSpawnPosition,
       collectObstacleBounds,
+      detectGroundSupport,
       stepPlayerState,
       computeCameraPosition
     } = window.JumpmapTestPhysicsUtils;
@@ -220,7 +221,121 @@
       if (!Number.isFinite(n)) return fallback;
       return Math.max(0.65, Math.min(2.6, n));
     };
-    const normalizeVirtualControlsLayout = (layout) => ({
+    const ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX = Object.freeze({
+      dpad: Object.freeze({ width: 118, height: 64 }),
+      jump: Object.freeze({ width: 88, height: 88 })
+    });
+    const VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX = 8;
+    const VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX = 12;
+    const getVirtualControlViewportSize = () => {
+      const width = Math.max(280, Number(window?.innerWidth) || 900);
+      const height = Math.max(220, Number(window?.innerHeight) || 600);
+      return { width, height };
+    };
+    const clampVirtualControlPosBySize = (value, fallback, boxSizePx, viewportSizePx) => {
+      const normalized = clampVirtualControlPos(value, fallback);
+      const size = Math.max(1, Number(boxSizePx) || 1);
+      const viewport = Math.max(1, Number(viewportSizePx) || 1);
+      const maxNormalized = Math.max(
+        0,
+        Math.min(0.9, (viewport - size - VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) / viewport)
+      );
+      return Math.max(0, Math.min(maxNormalized, normalized));
+    };
+    const buildVirtualControlRectPx = (conf, baseSize, viewport) => {
+      const scale = clampVirtualControlScale(conf?.scale, 1);
+      const width = Math.max(1, (Number(baseSize?.width) || 1) * scale);
+      const height = Math.max(1, (Number(baseSize?.height) || 1) * scale);
+      const left = clampVirtualControlPosBySize(conf?.x, 0, width, viewport.width) * viewport.width;
+      const bottom = clampVirtualControlPosBySize(conf?.y, 0, height, viewport.height) * viewport.height;
+      return {
+        left,
+        bottom,
+        right: left + width,
+        top: bottom + height,
+        width,
+        height
+      };
+    };
+    const rectsOverlapWithGap = (a, b, minGapPx = VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX) => !(
+      (a.right + minGapPx) <= b.left ||
+      (b.right + minGapPx) <= a.left ||
+      (a.top + minGapPx) <= b.bottom ||
+      (b.top + minGapPx) <= a.bottom
+    );
+    const resolveVirtualControlsLayoutSeparation = (layout, options = {}) => {
+      const viewport = {
+        width: Math.max(280, Number(options.viewportWidth) || getVirtualControlViewportSize().width),
+        height: Math.max(220, Number(options.viewportHeight) || getVirtualControlViewportSize().height)
+      };
+      const baseSizes = {
+        dpad: {
+          width: Math.max(1, Number(options.dpadSizePx?.width) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.dpad.width),
+          height: Math.max(1, Number(options.dpadSizePx?.height) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.dpad.height)
+        },
+        jump: {
+          width: Math.max(1, Number(options.jumpSizePx?.width) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.jump.width),
+          height: Math.max(1, Number(options.jumpSizePx?.height) || ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX.jump.height)
+        }
+      };
+      const result = cloneVirtualControlsLayout(layout);
+      result.dpad.scale = clampVirtualControlScale(result.dpad.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.scale);
+      result.jump.scale = clampVirtualControlScale(result.jump.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale);
+      const clampConf = (key) => {
+        const size = baseSizes[key];
+        const conf = result[key];
+        conf.x = clampVirtualControlPosBySize(conf.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT[key].x, size.width * conf.scale, viewport.width);
+        conf.y = clampVirtualControlPosBySize(conf.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT[key].y, size.height * conf.scale, viewport.height);
+      };
+      clampConf('dpad');
+      clampConf('jump');
+      const toRects = () => ({
+        dpad: buildVirtualControlRectPx(result.dpad, baseSizes.dpad, viewport),
+        jump: buildVirtualControlRectPx(result.jump, baseSizes.jump, viewport)
+      });
+      let rects = toRects();
+      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+
+      const jumpRightCandidateLeft = rects.dpad.right + VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX;
+      if ((jumpRightCandidateLeft + rects.jump.width + VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) <= viewport.width) {
+        result.jump.x = clampVirtualControlPosBySize(
+          jumpRightCandidateLeft / viewport.width,
+          result.jump.x,
+          rects.jump.width,
+          viewport.width
+        );
+        rects = toRects();
+      }
+      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+
+      const jumpAboveCandidateBottom = rects.dpad.top + VIRTUAL_CONTROL_LAYOUT_MIN_GAP_PX;
+      if ((jumpAboveCandidateBottom + rects.jump.height + VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) <= viewport.height) {
+        result.jump.y = clampVirtualControlPosBySize(
+          jumpAboveCandidateBottom / viewport.height,
+          result.jump.y,
+          rects.jump.height,
+          viewport.height
+        );
+        rects = toRects();
+      }
+      if (!rectsOverlapWithGap(rects.dpad, rects.jump)) return result;
+
+      // Final fallback: force split placement near left/right edges while preserving vertical intent.
+      result.dpad.x = clampVirtualControlPosBySize(
+        VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX / viewport.width,
+        DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.x,
+        rects.dpad.width,
+        viewport.width
+      );
+      result.jump.x = clampVirtualControlPosBySize(
+        (viewport.width - rects.jump.width - VIRTUAL_CONTROL_LAYOUT_EDGE_PADDING_PX) / viewport.width,
+        DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.x,
+        rects.jump.width,
+        viewport.width
+      );
+      return result;
+    };
+    const normalizeVirtualControlsLayout = (layout) => resolveVirtualControlsLayoutSeparation({
       dpad: {
         x: clampVirtualControlPos(layout?.dpad?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.x),
         y: clampVirtualControlPos(layout?.dpad?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.y),
@@ -771,7 +886,8 @@
         controls._editToggle.textContent = controlsLayoutState.editMode ? '조작 편집 완료' : '조작 편집';
         controls._editToggle.classList.toggle('is-active', !!controlsLayoutState.editMode);
       }
-      const effective = {
+      const controlsRect = controls.getBoundingClientRect();
+      const effective = resolveVirtualControlsLayoutSeparation({
         dpad: {
           x: clampVirtualControlPos(controlsLayoutState.layout?.dpad?.x, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.x),
           y: clampVirtualControlPos(controlsLayoutState.layout?.dpad?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.dpad.y),
@@ -782,7 +898,18 @@
           y: clampVirtualControlPos(controlsLayoutState.layout?.jump?.y, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.y),
           scale: clampVirtualControlScale(controlsLayoutState.layout?.jump?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale)
         }
-      };
+      }, {
+        viewportWidth: Math.max(1, Number(controlsRect?.width) || controls.clientWidth || 0),
+        viewportHeight: Math.max(1, Number(controlsRect?.height) || controls.clientHeight || 0),
+        dpadSizePx: {
+          width: controls._dpadBox?.offsetWidth,
+          height: controls._dpadBox?.offsetHeight
+        },
+        jumpSizePx: {
+          width: controls._jumpBox?.offsetWidth,
+          height: controls._jumpBox?.offsetHeight
+        }
+      });
       const applyBox = (box, conf) => {
         if (!box) return;
         box.style.left = `${(Math.max(0, Math.min(0.9, conf.x)) * 100).toFixed(3)}%`;
@@ -804,6 +931,15 @@
       const startX = e.clientX;
       const startY = e.clientY;
       const start = normalizeVirtualControlsLayout(controlsLayoutState.layout)[key];
+      const captureTarget = typeof e.currentTarget?.setPointerCapture === 'function' ? e.currentTarget : null;
+      const pointerId = Number.isFinite(Number(e.pointerId)) ? Number(e.pointerId) : null;
+      if (captureTarget && pointerId != null) {
+        try {
+          captureTarget.setPointerCapture(pointerId);
+        } catch (_error) {
+          // ignore capture failures
+        }
+      }
       const onMove = (moveEvent) => {
         moveEvent.preventDefault();
         const dx = moveEvent.clientX - startX;
@@ -817,12 +953,21 @@
           controlsLayoutState.layout[key].x = clampVirtualControlPos(nextX, start.x);
           controlsLayoutState.layout[key].y = clampVirtualControlPos(nextY, start.y);
         }
+        controlsLayoutState.layout = normalizeVirtualControlsLayout(controlsLayoutState.layout);
         syncVirtualControlsLayoutViews();
       };
       const finish = () => {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', finish);
         window.removeEventListener('pointercancel', finish);
+        if (captureTarget && pointerId != null && typeof captureTarget.releasePointerCapture === 'function') {
+          try {
+            captureTarget.releasePointerCapture(pointerId);
+          } catch (_error) {
+            // ignore capture failures
+          }
+        }
+        controlsLayoutState.layout = normalizeVirtualControlsLayout(controlsLayoutState.layout);
         saveVirtualControlsLayout();
       };
       window.addEventListener('pointermove', onMove, { passive: false });
@@ -1541,9 +1686,30 @@
       renderQuizResult(playerView);
     };
 
-    const getSpriteKeyForState = (playerState, dt) => {
-      if (!playerState.onGround && playerState.vy < 0) return SPRITES.jump;
-      if (!playerState.onGround && playerState.vy > 0) return SPRITES.fall;
+    const hasSpriteGroundContact = (playerState, metrics, obstacles, playerHitboxPolygon) => {
+      if (playerState?.onGround) return true;
+      if (typeof detectGroundSupport !== 'function') return false;
+      if (playerState?.jumping) return false;
+      if ((Number(playerState?.vy) || 0) < -0.001) return false;
+      try {
+        return detectGroundSupport(playerState, metrics, obstacles, {
+          maxUp: 2,
+          maxDown: 4,
+          direction: Number(playerState?.vx) || 0,
+          sampleSpacing: Number(state?.physics?.groundSampleSpacing) || undefined,
+          playerHitboxPolygon
+        }) !== null;
+      } catch (_error) {
+        return false;
+      }
+    };
+
+    const getSpriteKeyForState = (playerState, dt, options = null) => {
+      const groundedForSprite = typeof options?.groundedForSprite === 'boolean'
+        ? options.groundedForSprite
+        : !!playerState.onGround;
+      if (!groundedForSprite && playerState.vy < 0) return SPRITES.jump;
+      if (!groundedForSprite && playerState.vy > 0) return SPRITES.fall;
       if (Math.abs(playerState.vx) > 0) {
         playerState.walkTimer += dt;
         const idx = Math.floor(playerState.walkTimer * 10) % SPRITES.walk.length;
@@ -1774,7 +1940,8 @@
           const currentHeight = getPlayerHeightValue(ps, metrics);
           const best = Math.max(Number(ps.maxHeight) || 0, currentHeight);
           ps.maxHeight = best;
-          ps._spriteKey = getSpriteKeyForState(ps, dt);
+          const groundedForSprite = hasSpriteGroundContact(ps, metrics, obstacleCache, playerHitboxPolygon);
+          ps._spriteKey = getSpriteKeyForState(ps, dt, { groundedForSprite });
         });
 
         views.forEach((playerView, viewIndex) => {

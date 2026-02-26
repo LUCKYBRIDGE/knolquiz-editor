@@ -2014,6 +2014,7 @@ body.play-launch .test-header {
   box-shadow: 0 2px 8px rgba(30, 64, 175, 0.22);
   cursor: nwse-resize;
   pointer-events: auto;
+  touch-action: none;
 }
 
 .control-box-resize::before,
