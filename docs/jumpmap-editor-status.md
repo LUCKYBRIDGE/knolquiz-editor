@@ -3,6 +3,18 @@
 Date: 2026-02-08
 
 ## Summary
+- 레포 분리(R7 운영 편의) split scaffold 타임스탬프 churn 억제 1차(최신, 2026-02-26):
+  - `scripts/jumpmap-split-repos.mjs`
+    - `writeSplitReadme(...)`에서 `SPLIT_SCAFFOLD.md` 비교 시 `생성 시각` 라인을 정규화한 뒤 비교
+    - 결과: 내용이 같고 타임스탬프만 달라진 경우 파일 재쓰기 생략
+  - 의도/효과:
+    - `split-repos --apply`를 monorepo 문서 동기화 후 반복 실행해도, 실제 scaffold 내용 변화가 없으면 `SPLIT_SCAFFOLD.md`만으로 split 레포가 dirty 되는 churn 감소
+    - 특히 `nolquiz-runtime`의 불필요한 후속 `refresh scaffold metadata` 커밋 빈도 감소
+  - 검증(이 턴 기준):
+    - `node --check scripts/jumpmap-split-repos.mjs`
+    - `node scripts/jumpmap-split-repos.mjs --apply --force-merge`
+    - `node scripts/jumpmap-verify-split.mjs --skip-smoke`
+    - split 레포 상태 확인 (`SPLIT_SCAFFOLD.md` dirty 여부)
 - 레포 분리(R7 실작업) split 레포 remote bootstrap/push 템플릿 문서화 1차(최신, 2026-02-26):
   - `nolquiz-editor`
     - `docs/repo-operations.md`에 remote bootstrap / first push 명령 템플릿 추가
