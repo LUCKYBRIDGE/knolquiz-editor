@@ -1431,13 +1431,18 @@
     const createStartGuideUi = () => {
       const guide = document.createElement('div');
       guide.className = 'test-start-guide';
-      guide.innerHTML = [
+      const countdown = document.createElement('div');
+      countdown.className = 'test-start-guide-count';
+      countdown.textContent = '5';
+      guide.appendChild(countdown);
+      guide.insertAdjacentHTML('beforeend', [
         '<div class="test-start-guide-title">점프맵 시작</div>',
         '<div class="test-start-guide-line">이동키 + 점프키로 최대한 높은 곳까지 올라가세요.</div>',
         '<div class="test-start-guide-line">더블점프가 가능합니다.</div>',
         '<div class="test-start-guide-line">게이지가 0이면 지상 이동/점프가 불가합니다.</div>',
         '<div class="test-start-guide-line">하단 <strong>퀴즈 풀기</strong>로 게이지를 채울 수 있습니다.</div>'
-      ].join('');
+      ].join(''));
+      guide._countdownEl = countdown;
       return guide;
     };
 
@@ -1781,13 +1786,17 @@
     const hasSpriteGroundContact = (playerState, metrics, obstacles, playerHitboxPolygon) => {
       if (playerState?.onGround) return true;
       if (typeof detectGroundSupport !== 'function') return false;
-      // Allow sprite-ground support probing on landing even if `jumping` flag lingers
-      // for a frame. Only block while the character is clearly ascending.
-      if ((Number(playerState?.vy) || 0) < -24) return false;
+      // Make landing visual recovery more sensitive:
+      // - If jump key is already released, allow support probing almost immediately.
+      // - If jump key is still held, only block while clearly ascending.
+      const vy = Number(playerState?.vy) || 0;
+      const jumpHeld = !!playerState?.input?.jumpHeld;
+      if (jumpHeld && vy < -10) return false;
+      if (vy < -36) return false;
       try {
         return detectGroundSupport(playerState, metrics, obstacles, {
-          maxUp: 2,
-          maxDown: 4,
+          maxUp: 4,
+          maxDown: 6,
           direction: Number(playerState?.vx) || 0,
           sampleSpacing: Number(state?.physics?.groundSampleSpacing) || undefined,
           playerHitboxPolygon
@@ -1912,6 +1921,7 @@
             gaugeLow: null,
             quizButtonDisabled: null,
             startGuideHidden: null,
+            startGuideCountText: '',
             cameraTransform: '',
             worldTransform: '',
             debugText: ''
@@ -2137,6 +2147,14 @@
             if (renderCache.startGuideHidden !== hideGuide) {
               playerView.startGuide.classList.toggle('hidden', hideGuide);
               renderCache.startGuideHidden = hideGuide;
+            }
+            if (!hideGuide && playerView.startGuide._countdownEl) {
+              const remainingMs = Math.max(0, Number(playerView.startGuideUntil || 0) - now);
+              const countdownText = String(Math.max(1, Math.ceil(remainingMs / 1000)));
+              if (renderCache.startGuideCountText !== countdownText) {
+                playerView.startGuide._countdownEl.textContent = countdownText;
+                renderCache.startGuideCountText = countdownText;
+              }
             }
           }
           const qState = getQuizState(playerView);

@@ -1791,6 +1791,15 @@ body.play-launch .test-header {
   margin-bottom: clamp(4px, 1.2cqw, 14px);
 }
 
+.test-start-guide-count {
+  font-size: clamp(30px, 10cqw, 120px);
+  font-weight: 900;
+  color: #0f2f59;
+  line-height: 0.95;
+  margin-bottom: clamp(4px, 1.4cqw, 14px);
+  text-shadow: 0 2px 10px rgba(255, 255, 255, 0.75);
+}
+
 .test-start-guide-line {
   font-size: clamp(13px, 3.4cqw, 40px);
   font-weight: 700;
@@ -2151,6 +2160,10 @@ body.play-launch .test-header {
   }
   .test-start-guide-title {
     font-size: clamp(14px, 5.2cqw, 28px);
+    margin-bottom: 2px;
+  }
+  .test-start-guide-count {
+    font-size: clamp(22px, 8.6cqw, 56px);
     margin-bottom: 2px;
   }
   .test-start-guide-line {
