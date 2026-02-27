@@ -1784,12 +1784,16 @@
       if (playerState?.onGround) return true;
       if (typeof detectGroundSupport !== 'function') return false;
       try {
+        const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
+        const inputDir = (playerState?.input?.right ? 1 : 0) - (playerState?.input?.left ? 1 : 0);
+        const vx = Number(playerState?.vx) || 0;
+        const probeDirection = inputDir || (vx > 6 ? 1 : (vx < -6 ? -1 : (Number(playerState?.facing) || 0)));
         // Visual sprite grounding should prioritize actual foot/top contact over input flags.
-        // Use neutral probing to avoid movement-direction bias near platform edges.
+        // Probe with movement/facing direction first so landing while moving does not miss front-foot support.
         const supportFootY = detectGroundSupport(playerState, metrics, obstacles, {
-          maxUp: 4,
-          maxDown: 16,
-          direction: 0,
+          maxUp: 6,
+          maxDown: 24,
+          direction: probeDirection,
           minSupportSamples: 1,
           minSupportSpanPx: 0,
           supportYTolerance: 2.5,
@@ -1801,12 +1805,11 @@
         const gap = supportFootY - footY;
         const vy = Number(playerState?.vy) || 0;
         // If the feet are effectively touching a top surface, switch out of jump/fall quickly.
-        if (gap >= -2 && gap <= 10) return true;
-        const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
-        if (hasMoveInput && vy >= -4 && gap >= -3 && gap <= 20) return true;
+        if (gap >= -3 && gap <= 12) return true;
+        if (hasMoveInput && vy >= -8 && gap >= -4 && gap <= 24) return true;
         // While strongly ascending, avoid false grounded visuals from nearby but not-contacting tops.
         if (vy < -24 && gap > 1.5) return false;
-        return gap >= -5 && gap <= 14;
+        return gap >= -6 && gap <= 16;
       } catch (_error) {
         return false;
       }
@@ -1828,7 +1831,11 @@
       const prevMoveLatch = Math.max(0, Number(playerState?._spriteMoveLatchSec) || 0);
       const nextMoveLatch = hasMoveInput ? 0.08 : Math.max(0, prevMoveLatch - safeDt);
       playerState._spriteMoveLatchSec = nextMoveLatch;
-      const groundedVisual = groundedForSprite || (nextGroundLatch > 0 && Math.abs(vy) < 48);
+      const groundedVisual = groundedForSprite || (
+        nextGroundLatch > 0 &&
+        !playerState?.jumping &&
+        vy > -24
+      );
       const moveVisual = hasMoveInput || nextMoveLatch > 0;
       if (!groundedVisual && vy < 0) return SPRITES.jump;
       if (!groundedVisual && vy > 0) return SPRITES.fall;
