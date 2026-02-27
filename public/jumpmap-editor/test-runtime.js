@@ -112,6 +112,7 @@
     const TEST_START_GUIDE_MS = 5000;
     const WALK_FRAME_INTERVAL_SEC = 0.12;
     const HEIGHT_PX_PER_METER = 200;
+    const PLAY_READY_MESSAGE_SOURCE = 'jumpmap-runtime-play';
     const QUIZ_DEFAULT_SETTINGS = {
       timeLimitSec: 30,
       questionCount: 30,
@@ -205,6 +206,21 @@
       return inCountdown || !spriteWarmupState.ready;
     };
     warmupPlayerSprites();
+    const postPlayReadyMessage = (phase, extra = {}) => {
+      try {
+        if (!window?.parent || window.parent === window) return;
+        window.parent.postMessage(
+          {
+            source: PLAY_READY_MESSAGE_SOURCE,
+            phase,
+            ...extra
+          },
+          '*'
+        );
+      } catch (_error) {
+        // no-op
+      }
+    };
     const getEditorRuntimeAssetBaseHref = () => {
       if (editorRuntimeAssetBaseHrefCache) return editorRuntimeAssetBaseHrefCache;
       const explicitBase = typeof window.__JUMPMAP_EDITOR_RUNTIME_BASE_HREF__ === 'string'
@@ -2308,6 +2324,10 @@
       els.testOverlay.classList.remove('hidden');
       buildTestViews(state.test.players);
       startTestLoop();
+      postPlayReadyMessage('runtime-ready', {
+        players: state.test.players,
+        at: Date.now()
+      });
       integration.emit('test:enter', {
         players: state.test.players
       });
