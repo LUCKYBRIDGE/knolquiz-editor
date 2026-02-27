@@ -2233,7 +2233,7 @@ body.play-launch .test-header {
 
 .dpad {
   display: flex;
-  gap: 6px;
+  gap: 10px;
 }
 
 .dpad button,
@@ -2533,7 +2533,7 @@ body.play-launch .test-header {
     gap: 6px;
   }
   .dpad {
-    gap: 4px;
+    gap: 6px;
   }
   .dpad button {
     width: 38px;

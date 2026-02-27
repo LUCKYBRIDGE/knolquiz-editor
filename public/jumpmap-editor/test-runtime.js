@@ -147,10 +147,15 @@
     };
     const LAUNCHER_SETUP_STORAGE_KEY = 'jumpmap.launcher.setup.v1';
     const VIRTUAL_CONTROLS_LAYOUT_KEY = 'jumpmap.test.controls.layout.v1';
-    const DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
+    const PREVIOUS_DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
       dpad: { x: 0.012, y: 0.02, scale: 1.0 },
       jump: { x: 0.112, y: 0.02, scale: 1.0 },
       quiz: { x: 0.79, y: 0.02, scale: 1.0 }
+    });
+    const DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
+      dpad: { x: 0.012, y: 0.02, scale: 1.0 },
+      jump: { x: 0.84, y: 0.02, scale: 1.0 },
+      quiz: { x: 0.78, y: 0.2, scale: 1.0 }
     });
     const LEGACY_OVERLAP_DEFAULT_VIRTUAL_CONTROLS_LAYOUT = Object.freeze({
       dpad: { x: 0.008, y: 0.02, scale: 1.0 },
@@ -380,7 +385,7 @@
       return Math.max(0.65, Math.min(2.6, n));
     };
     const ESTIMATED_VIRTUAL_CONTROL_BOX_SIZE_PX = Object.freeze({
-      dpad: Object.freeze({ width: 118, height: 64 }),
+      dpad: Object.freeze({ width: 132, height: 64 }),
       jump: Object.freeze({ width: 88, height: 88 }),
       quiz: Object.freeze({ width: 144, height: 70 })
     });
@@ -561,6 +566,17 @@
         scale: clampVirtualControlScale(layout?.quiz?.scale, DEFAULT_VIRTUAL_CONTROLS_LAYOUT.quiz.scale)
       }
     });
+    const isLayoutCloseToPreset = (layout, preset, tolerance = 0.0005) => {
+      if (!layout || !preset) return false;
+      const keys = ['dpad', 'jump', 'quiz'];
+      return keys.every((key) => {
+        const a = layout[key] || {};
+        const b = preset[key] || {};
+        return ['x', 'y', 'scale'].every((field) => (
+          Math.abs((Number(a[field]) || 0) - (Number(b[field]) || 0)) <= tolerance
+        ));
+      });
+    };
     const loadVirtualControlsLayout = () => {
       try {
         const raw = window.localStorage?.getItem(VIRTUAL_CONTROLS_LAYOUT_KEY);
@@ -574,9 +590,10 @@
           Math.abs((normalized?.jump?.x ?? -1) - LEGACY_OVERLAP_DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.x) < 0.0005 &&
           Math.abs((normalized?.jump?.y ?? -1) - LEGACY_OVERLAP_DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.y) < 0.0005 &&
           Math.abs((normalized?.jump?.scale ?? -1) - LEGACY_OVERLAP_DEFAULT_VIRTUAL_CONTROLS_LAYOUT.jump.scale) < 0.0005;
+        const isPreviousDefault = isLayoutCloseToPreset(normalized, PREVIOUS_DEFAULT_VIRTUAL_CONTROLS_LAYOUT);
         return isLegacyOverlapDefault
           ? normalizeVirtualControlsLayout(DEFAULT_VIRTUAL_CONTROLS_LAYOUT)
-          : normalized;
+          : (isPreviousDefault ? normalizeVirtualControlsLayout(DEFAULT_VIRTUAL_CONTROLS_LAYOUT) : normalized);
       } catch (_error) {
         return normalizeVirtualControlsLayout(DEFAULT_VIRTUAL_CONTROLS_LAYOUT);
       }
