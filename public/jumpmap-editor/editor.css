@@ -1612,7 +1612,7 @@ body.play-launch .test-header {
 }
 
 .player.player-peer {
-  opacity: 0.72;
+  opacity: 0.45;
   z-index: 10;
 }
 
