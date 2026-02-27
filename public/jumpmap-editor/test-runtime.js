@@ -162,6 +162,49 @@
       sessionStartedAt: 0,
       savedSessionSeqs: new Set()
     };
+    const spriteWarmupState = {
+      ready: false,
+      promise: null
+    };
+    const getPlayerSpriteKeys = () => {
+      const keys = [SPRITES.idle, SPRITES.jump, SPRITES.fall, SPRITES.hurt, ...(SPRITES.walk || [])];
+      return [...new Set(keys.filter((key) => typeof key === 'string' && key.trim()))];
+    };
+    const warmupPlayerSprites = () => {
+      if (spriteWarmupState.promise) return spriteWarmupState.promise;
+      const keys = getPlayerSpriteKeys();
+      if (!keys.length || typeof Image !== 'function') {
+        spriteWarmupState.ready = true;
+        spriteWarmupState.promise = Promise.resolve();
+        return spriteWarmupState.promise;
+      }
+      const loadOne = (src) => new Promise((resolve) => {
+        const img = new Image();
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        img.onload = done;
+        img.onerror = done;
+        img.src = src;
+        if (typeof img.decode === 'function') {
+          img.decode().then(done).catch(done);
+        }
+      });
+      spriteWarmupState.promise = Promise.all(keys.map((key) => loadOne(`${sejongBase}${key}`)))
+        .catch(() => {})
+        .then(() => {
+          spriteWarmupState.ready = true;
+        });
+      return spriteWarmupState.promise;
+    };
+    const isStartGuideBlocking = (playerView, now = Date.now()) => {
+      const inCountdown = now <= (Number(playerView?.startGuideUntil) || 0);
+      return inCountdown || !spriteWarmupState.ready;
+    };
+    warmupPlayerSprites();
     const getEditorRuntimeAssetBaseHref = () => {
       if (editorRuntimeAssetBaseHrefCache) return editorRuntimeAssetBaseHrefCache;
       const explicitBase = typeof window.__JUMPMAP_EDITOR_RUNTIME_BASE_HREF__ === 'string'
@@ -1222,7 +1265,7 @@
           if (!player) return;
           if (key === 'jump') {
             if (pressed) {
-              if (Date.now() <= (Number(player.startGuideUntil) || 0)) return;
+              if (isStartGuideBlocking(player)) return;
               if (player.state.input.jumpHeld || player.state.input.jumpLock) return;
               player.state.input.jumpQueued = true;
               player.state.input.jumpHeld = true;
@@ -2003,7 +2046,7 @@
           const quizState = getQuizState(playerView);
           const now = frameNow;
           const quizBlocking = quizState.phase !== 'idle';
-          const startGuideBlocking = now <= (Number(playerView.startGuideUntil) || 0);
+          const startGuideBlocking = isStartGuideBlocking(playerView, now);
           const controlBlocking = quizBlocking || startGuideBlocking;
           const playerId = getBridgePlayerId(playerView.index);
           const zoneId = getBridgeZoneId(playerView.index);
@@ -2178,14 +2221,16 @@
             }
           }
           if (playerView.startGuide) {
-            const hideGuide = now > (playerView.startGuideUntil || 0);
+            const hideGuide = !isStartGuideBlocking(playerView, now);
             if (renderCache.startGuideHidden !== hideGuide) {
               playerView.startGuide.classList.toggle('hidden', hideGuide);
               renderCache.startGuideHidden = hideGuide;
             }
             if (!hideGuide && playerView.startGuide._countdownEl) {
               const remainingMs = Math.max(0, Number(playerView.startGuideUntil || 0) - now);
-              const countdownText = String(Math.max(1, Math.ceil(remainingMs / 1000)));
+              const countdownText = remainingMs > 0
+                ? String(Math.max(1, Math.ceil(remainingMs / 1000)))
+                : (spriteWarmupState.ready ? '1' : '준비');
               if (renderCache.startGuideCountText !== countdownText) {
                 playerView.startGuide._countdownEl.textContent = countdownText;
                 renderCache.startGuideCountText = countdownText;
@@ -2334,7 +2379,7 @@
       if (!state.test.active) return;
       const first = getViews()[0];
       if (!first) return;
-      if (Date.now() <= (Number(first.startGuideUntil) || 0)) {
+      if (isStartGuideBlocking(first)) {
         if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === ' ') {
           e.preventDefault();
         }
