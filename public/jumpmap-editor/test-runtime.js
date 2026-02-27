@@ -110,6 +110,7 @@
     const QUIZ_GAUGE_START_AMOUNT = 100;
     const QUIZ_GAUGE_PX_PER_UNIT = 1.6;
     const TEST_START_GUIDE_MS = 5000;
+    const WALK_FRAME_INTERVAL_SEC = 0.12;
     const HEIGHT_PX_PER_METER = 200;
     const QUIZ_DEFAULT_SETTINGS = {
       timeLimitSec: 30,
@@ -1849,8 +1850,8 @@
           playerState.walkTimer = 0;
           return SPRITES.walk[0];
         }
-        playerState.walkTimer += dt;
-        const idx = Math.floor(playerState.walkTimer * 14) % SPRITES.walk.length;
+        playerState.walkTimer += safeDt;
+        const idx = Math.floor(playerState.walkTimer / WALK_FRAME_INTERVAL_SEC) % SPRITES.walk.length;
         return SPRITES.walk[idx];
       }
       playerState.walkTimer = 0;
