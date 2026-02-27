@@ -1788,8 +1788,11 @@
         // Use neutral probing to avoid movement-direction bias near platform edges.
         const supportFootY = detectGroundSupport(playerState, metrics, obstacles, {
           maxUp: 4,
-          maxDown: 6,
+          maxDown: 16,
           direction: 0,
+          minSupportSamples: 1,
+          minSupportSpanPx: 0,
+          supportYTolerance: 2.5,
           sampleSpacing: Number(state?.physics?.groundSampleSpacing) || undefined,
           playerHitboxPolygon
         });
@@ -1798,10 +1801,12 @@
         const gap = supportFootY - footY;
         const vy = Number(playerState?.vy) || 0;
         // If the feet are effectively touching a top surface, switch out of jump/fall quickly.
-        if (gap >= -2 && gap <= 6) return true;
+        if (gap >= -2 && gap <= 10) return true;
+        const hasMoveInput = !!playerState?.input?.left || !!playerState?.input?.right;
+        if (hasMoveInput && vy >= -4 && gap >= -3 && gap <= 20) return true;
         // While strongly ascending, avoid false grounded visuals from nearby but not-contacting tops.
         if (vy < -24 && gap > 1.5) return false;
-        return gap >= -4 && gap <= 8;
+        return gap >= -5 && gap <= 14;
       } catch (_error) {
         return false;
       }
@@ -1813,6 +1818,7 @@
         : !!playerState.onGround;
       const vy = Number(playerState?.vy) || 0;
       const safeDt = Math.max(0, Number(dt) || 0);
+      const prevSpriteKey = typeof playerState?._spriteKey === 'string' ? playerState._spriteKey : '';
       const prevGroundLatch = Math.max(0, Number(playerState?._spriteGroundLatchSec) || 0);
       const nextGroundLatch = groundedForSprite
         ? 0.12
@@ -1828,11 +1834,19 @@
       if (!groundedVisual && vy > 0) return SPRITES.fall;
       // Keep walk animation cycling while a direction key is held on the ground,
       // even if horizontal velocity is temporarily near zero (e.g., wall contact).
-      if (groundedVisual && (moveVisual || Math.abs(playerState.vx) > 1)) {
+      const shouldWalk = groundedVisual && (moveVisual || Math.abs(playerState.vx) > 1);
+      if (shouldWalk) {
+        const wasWalkSprite = /^sejong_walk[1-4]\.png$/i.test(prevSpriteKey);
+        if (!wasWalkSprite) {
+          // On movement-start / landing contact, immediately show walk1.
+          playerState.walkTimer = 0;
+          return SPRITES.walk[0];
+        }
         playerState.walkTimer += dt;
         const idx = Math.floor(playerState.walkTimer * 14) % SPRITES.walk.length;
         return SPRITES.walk[idx];
       }
+      playerState.walkTimer = 0;
       return SPRITES.idle;
     };
 
