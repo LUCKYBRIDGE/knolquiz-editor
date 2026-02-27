@@ -109,7 +109,7 @@
     const QUIZ_GAUGE_DISPLAY_CAP = 100;
     const QUIZ_GAUGE_START_AMOUNT = 100;
     const QUIZ_GAUGE_PX_PER_UNIT = 1.6;
-    const TEST_START_GUIDE_MS = 5000;
+    const TEST_START_GUIDE_MS = 0;
     const WALK_FRAME_INTERVAL_SEC = 0.12;
     const HEIGHT_PX_PER_METER = 200;
     const PLAY_READY_MESSAGE_SOURCE = 'jumpmap-runtime-play';
@@ -202,7 +202,8 @@
       return spriteWarmupState.promise;
     };
     const isStartGuideBlocking = (playerView, now = Date.now()) => {
-      const inCountdown = now <= (Number(playerView?.startGuideUntil) || 0);
+      const guideUntil = Number(playerView?.startGuideUntil) || 0;
+      const inCountdown = guideUntil > 0 && now <= guideUntil;
       return inCountdown || !spriteWarmupState.ready;
     };
     warmupPlayerSprites();
@@ -220,6 +221,20 @@
       } catch (_error) {
         // no-op
       }
+    };
+    const postRuntimeReadyWhenPrepared = (extra = {}) => {
+      const emit = () => {
+        postPlayReadyMessage('runtime-ready', {
+          players: state.test.players,
+          at: Date.now(),
+          ...extra
+        });
+      };
+      if (spriteWarmupState.ready) {
+        emit();
+        return;
+      }
+      warmupPlayerSprites().finally(emit);
     };
     const getEditorRuntimeAssetBaseHref = () => {
       if (editorRuntimeAssetBaseHrefCache) return editorRuntimeAssetBaseHrefCache;
@@ -1485,24 +1500,6 @@
       };
     };
 
-    const createStartGuideUi = () => {
-      const guide = document.createElement('div');
-      guide.className = 'test-start-guide';
-      const countdown = document.createElement('div');
-      countdown.className = 'test-start-guide-count';
-      countdown.textContent = '5';
-      guide.appendChild(countdown);
-      guide.insertAdjacentHTML('beforeend', [
-        '<div class="test-start-guide-title">점프맵 시작</div>',
-        '<div class="test-start-guide-line">이동키 + 점프키로 최대한 높은 곳까지 올라가세요.</div>',
-        '<div class="test-start-guide-line">더블점프가 가능합니다.</div>',
-        '<div class="test-start-guide-line">게이지가 0이면 지상 이동/점프가 불가합니다.</div>',
-        '<div class="test-start-guide-line">하단 <strong>퀴즈 풀기</strong>로 게이지를 채울 수 있습니다.</div>'
-      ].join(''));
-      guide._countdownEl = countdown;
-      return guide;
-    };
-
     const getPlayerGauge = (index) => {
       const playerId = getBridgePlayerId(index);
       if (typeof integration.getPlayerGauge === 'function') {
@@ -1972,8 +1969,6 @@
         topHud.appendChild(heightInfo);
         view.appendChild(topHud);
         view.appendChild(quizUi.panel);
-        const startGuide = createStartGuideUi();
-        view.appendChild(startGuide);
         const debugInfo = document.createElement('div');
         debugInfo.className = 'test-view-debug-info';
         debugInfo.style.display = 'none';
@@ -2004,7 +1999,7 @@
           topHud,
           heightInfo,
           quizUi,
-          startGuide,
+          startGuide: null,
           debugInfo,
           bgLayer,
           state: playerState,
@@ -2023,7 +2018,7 @@
           camX: 0,
           camY: 0,
           viewScale: 1,
-          startGuideUntil: Date.now() + TEST_START_GUIDE_MS,
+          startGuideUntil: TEST_START_GUIDE_MS > 0 ? (Date.now() + TEST_START_GUIDE_MS) : 0,
           sessionStats: {
             quizAttempts: 0,
             quizCorrect: 0,
@@ -2324,10 +2319,7 @@
       els.testOverlay.classList.remove('hidden');
       buildTestViews(state.test.players);
       startTestLoop();
-      postPlayReadyMessage('runtime-ready', {
-        players: state.test.players,
-        at: Date.now()
-      });
+      postRuntimeReadyWhenPrepared();
       integration.emit('test:enter', {
         players: state.test.players
       });
