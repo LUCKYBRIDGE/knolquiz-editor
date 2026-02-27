@@ -11178,8 +11178,8 @@ const integrationBridge = window.JumpmapIntegrationBridge?.createBridge
       max: TEST_RUNTIME_GAUGE_MAX,
       initial: TEST_RUNTIME_GAUGE_START,
       moveCost: 4,
-      jumpCost: 15,
-      doubleJumpCost: 15,
+      jumpCost: 14.5,
+      doubleJumpCost: 14.5,
       correctReward: 64,
       wrongReward: 0,
       wrongDelayMs: 3000
