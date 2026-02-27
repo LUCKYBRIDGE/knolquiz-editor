@@ -111,6 +111,11 @@
     const QUIZ_GAUGE_PX_PER_UNIT = 1.6;
     const TEST_START_GUIDE_MS = 0;
     const WALK_FRAME_INTERVAL_SEC = 0.12;
+    const PLAY_FALLBACK_BG_COLOR = '#d9d3c4';
+    const RUNTIME_MOVE_SPEED_SCALE = 0.9;
+    const RUNTIME_AIRTIME_SCALE = 1.1;
+    const RUNTIME_VERTICAL_SPEED_SCALE = 1 / RUNTIME_AIRTIME_SCALE;
+    const BACKGROUND_POSITION_PRECISION_DIGITS = 0;
     const HEIGHT_PX_PER_METER = 200;
     const PLAY_READY_MESSAGE_SOURCE = 'jumpmap-runtime-play';
     const QUIZ_DEFAULT_SETTINGS = {
@@ -820,7 +825,7 @@
     const getTestBackgroundStyleKey = () => {
       const bg = state?.background || {};
       return [
-        String(bg.color || '#ffffff'),
+        String(bg.color || PLAY_FALLBACK_BG_COLOR),
         String(bg.texture || ''),
         String(bg.image || ''),
         getBackgroundImageOpacity().toFixed(3)
@@ -842,12 +847,11 @@
       const styleKey = getTestBackgroundStyleKey();
       if (cache.styleKey !== styleKey) {
         const layers = getBackgroundLayers({ applyOpacityOverlay: false });
-        bgLayer.style.backgroundColor = state.background.color || '#ffffff';
+        bgLayer.style.backgroundColor = state.background.color || PLAY_FALLBACK_BG_COLOR;
         bgLayer.style.backgroundImage = layers.image;
         bgLayer.style.backgroundSize = layers.size;
         bgLayer.style.backgroundRepeat = layers.repeat;
         bgLayer.style.opacity = String(getBackgroundImageOpacity());
-        bgLayer.style.transform = 'none';
 
         const nextBasePositions = String(layers.position || 'center')
           .split(',')
@@ -871,9 +875,8 @@
         // only near map bottom so lower white area does not appear too early.
         const xPct = 50 + (progressX - 0.5) * 6;
         const yPct = Math.pow(progressY, 2.4) * 100;
-        // Far background parallax does not need sub-0.1% precision and lower precision
-        // reduces full-layer repaint churn while moving.
-        basePositions[basePositions.length - 1] = `${xPct.toFixed(1)}% ${yPct.toFixed(1)}%`;
+        // Lower precision reduces full-layer repaint churn on mobile/tablet.
+        basePositions[basePositions.length - 1] = `${xPct.toFixed(BACKGROUND_POSITION_PRECISION_DIGITS)}% ${yPct.toFixed(BACKGROUND_POSITION_PRECISION_DIGITS)}%`;
       } else if (basePositions.length) {
         basePositions[basePositions.length - 1] = '50% 100%';
       }
@@ -889,6 +892,15 @@
       const res = await fetch(url, { cache: 'no-store' });
       if (!res.ok) throw new Error(`Failed to load quiz json: ${url}`);
       return res.json();
+    };
+
+    const getTunedRuntimePhysics = (physics = {}) => {
+      const next = { ...(physics || {}) };
+      const jumpSpeed = Math.max(0, Number(physics?.jumpSpeed) || 0);
+      const fallSpeed = Math.max(0, Number(physics?.fallSpeed) || 0);
+      if (jumpSpeed > 0) next.jumpSpeed = jumpSpeed * RUNTIME_VERTICAL_SPEED_SCALE;
+      if (fallSpeed > 0) next.fallSpeed = fallSpeed * RUNTIME_VERTICAL_SPEED_SCALE;
+      return next;
     };
 
     const mergeQuizSettings = (loaded = {}) => ({
@@ -2031,7 +2043,7 @@
       for (let i = 0; i < count; i += 1) {
         const view = document.createElement('div');
         view.className = 'test-view';
-        view.style.backgroundColor = state.background.color || '#ffffff';
+        view.style.backgroundColor = state.background.color || PLAY_FALLBACK_BG_COLOR;
         const bgLayer = document.createElement('div');
         bgLayer.className = 'test-background-layer';
         applyTestBackgroundLayer(bgLayer);
@@ -2152,7 +2164,9 @@
         const frameNow = Date.now();
         const metrics = getPlayerMetrics();
         const playerHitboxPolygon = getPlayerHitboxPolygon ? getPlayerHitboxPolygon() : null;
-        const moveSpeed = Math.max(0, Number(state.physics?.moveSpeed) || 220);
+        const baseMoveSpeed = Math.max(0, Number(state.physics?.moveSpeed) || 220);
+        const moveSpeed = baseMoveSpeed * RUNTIME_MOVE_SPEED_SCALE;
+        const tunedPhysics = getTunedRuntimePhysics(state.physics);
         const sprite = getPlayerSpriteRender();
         const offset = getPlayerHitboxOffset();
         if (!obstacleCache) {
@@ -2203,7 +2217,7 @@
             playerState: ps,
             dt,
             moveSpeed,
-            physics: state.physics,
+            physics: tunedPhysics,
             metrics,
             playerHitboxPolygon,
             map: state.map,

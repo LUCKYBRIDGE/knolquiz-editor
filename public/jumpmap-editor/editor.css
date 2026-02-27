@@ -45,6 +45,13 @@ html.jumpmap-play-launch .test-overlay {
   z-index: 999;
 }
 
+html.jumpmap-play-launch,
+html.jumpmap-play-launch body {
+  height: 100dvh;
+  overscroll-behavior: none;
+  background: #17120d;
+}
+
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -1534,16 +1541,21 @@ body.play-launch .test-header {
 
 .test-view {
   position: relative;
-  background: #fff;
+  background: #d9d3c4;
   overflow: hidden;
   container-type: size;
+  contain: paint;
+  isolation: isolate;
 }
 
 .test-background-layer {
   position: absolute;
   inset: 0;
+  background: #d9d3c4;
   pointer-events: none;
   will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   z-index: 0;
 }
 
