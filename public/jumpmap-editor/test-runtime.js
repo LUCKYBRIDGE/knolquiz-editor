@@ -167,6 +167,10 @@
       ready: false,
       promise: null
     };
+    const sceneWarmupState = {
+      ready: false,
+      promise: null
+    };
     const getPlayerSpriteKeys = () => {
       const keys = [SPRITES.idle, SPRITES.jump, SPRITES.fall, SPRITES.hurt, ...(SPRITES.walk || [])];
       return [...new Set(keys.filter((key) => typeof key === 'string' && key.trim()))];
@@ -201,6 +205,71 @@
         });
       return spriteWarmupState.promise;
     };
+    const parseCssBackgroundUrls = (cssValue) => {
+      if (typeof cssValue !== 'string' || !cssValue.trim()) return [];
+      const urls = [];
+      const regex = /url\((['"]?)(.*?)\1\)/g;
+      let match = regex.exec(cssValue);
+      while (match) {
+        const url = (match[2] || '').trim();
+        if (url) urls.push(url);
+        match = regex.exec(cssValue);
+      }
+      return urls;
+    };
+    const collectRuntimeSceneAssetUrls = (views = getViews()) => {
+      const firstView = Array.isArray(views) && views.length ? views[0] : null;
+      if (!firstView) return [];
+      const urls = new Set();
+      const pushUrl = (raw) => {
+        if (typeof raw !== 'string') return;
+        const trimmed = raw.trim();
+        if (!trimmed || trimmed.startsWith('data:')) return;
+        try {
+          urls.add(new URL(trimmed, document.baseURI).toString());
+        } catch (_error) {
+          urls.add(trimmed);
+        }
+      };
+      if (firstView.world) {
+        firstView.world.querySelectorAll('img[src]').forEach((img) => {
+          pushUrl(img.getAttribute('src') || img.src || '');
+        });
+      }
+      const bgCss = firstView.bgLayer?.style?.backgroundImage || '';
+      parseCssBackgroundUrls(bgCss).forEach(pushUrl);
+      return [...urls];
+    };
+    const warmupRuntimeSceneAssets = (views = getViews()) => {
+      if (sceneWarmupState.promise) return sceneWarmupState.promise;
+      const urls = collectRuntimeSceneAssetUrls(views);
+      if (!urls.length || typeof Image !== 'function') {
+        sceneWarmupState.ready = true;
+        sceneWarmupState.promise = Promise.resolve();
+        return sceneWarmupState.promise;
+      }
+      const loadOne = (src) => new Promise((resolve) => {
+        const img = new Image();
+        let settled = false;
+        const done = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        img.onload = done;
+        img.onerror = done;
+        img.src = src;
+        if (typeof img.decode === 'function') {
+          img.decode().then(done).catch(done);
+        }
+      });
+      sceneWarmupState.promise = Promise.all(urls.map((src) => loadOne(src)))
+        .catch(() => {})
+        .then(() => {
+          sceneWarmupState.ready = true;
+        });
+      return sceneWarmupState.promise;
+    };
     const isStartGuideBlocking = (playerView, now = Date.now()) => {
       const guideUntil = Number(playerView?.startGuideUntil) || 0;
       const inCountdown = guideUntil > 0 && now <= guideUntil;
@@ -230,11 +299,14 @@
           ...extra
         });
       };
-      if (spriteWarmupState.ready) {
+      if (spriteWarmupState.ready && sceneWarmupState.ready) {
         emit();
         return;
       }
-      warmupPlayerSprites().finally(emit);
+      Promise.all([
+        warmupPlayerSprites(),
+        warmupRuntimeSceneAssets(getViews())
+      ]).finally(emit);
     };
     const getEditorRuntimeAssetBaseHref = () => {
       if (editorRuntimeAssetBaseHrefCache) return editorRuntimeAssetBaseHrefCache;
@@ -1916,6 +1988,8 @@
 
     const buildTestViews = (count) => {
       quizRuntimeState.sessions.clear();
+      sceneWarmupState.ready = false;
+      sceneWarmupState.promise = null;
       els.testViews.innerHTML = '';
       els.testViews.style.gridTemplateColumns = `repeat(${count}, 1fr)`;
       els.testViews.dataset.playerCount = String(count);
@@ -2318,6 +2392,7 @@
       state.test.active = true;
       els.testOverlay.classList.remove('hidden');
       buildTestViews(state.test.players);
+      warmupRuntimeSceneAssets(getViews());
       startTestLoop();
       postRuntimeReadyWhenPrepared();
       integration.emit('test:enter', {
