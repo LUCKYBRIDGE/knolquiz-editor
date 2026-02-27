@@ -1617,6 +1617,36 @@
       el.dataset.feedbackTone = nextTone;
     };
 
+    const clearQuizResultFx = (playerView) => {
+      if (!playerView) return;
+      if (playerView.quizFxTimerId) {
+        window.clearTimeout(playerView.quizFxTimerId);
+        playerView.quizFxTimerId = 0;
+      }
+      const ui = playerView.quizUi;
+      if (!ui) return;
+      ui.panelCard?.classList.remove('quiz-fx-success', 'quiz-fx-fail');
+      ui.feedback?.classList.remove('quiz-fx-success', 'quiz-fx-fail');
+    };
+
+    const playQuizResultFx = (playerView, correct) => {
+      const ui = playerView?.quizUi;
+      if (!ui) return;
+      clearQuizResultFx(playerView);
+      const fxClass = correct ? 'quiz-fx-success' : 'quiz-fx-fail';
+      const targets = [ui.panelCard, ui.feedback].filter(Boolean);
+      targets.forEach((el) => {
+        el.classList.remove(fxClass);
+        // Force reflow so repeated same-result feedback retriggers animation.
+        void el.offsetWidth;
+        el.classList.add(fxClass);
+      });
+      playerView.quizFxTimerId = window.setTimeout(() => {
+        targets.forEach((el) => el.classList.remove(fxClass));
+        playerView.quizFxTimerId = 0;
+      }, 980);
+    };
+
     const getQuizState = (playerView) => {
       if (!playerView.quizState) {
         playerView.quizState = {
@@ -1678,6 +1708,7 @@
       quizState.result = null;
       quizState.reward = null;
       quizState.lockUntil = 0;
+      clearQuizResultFx(playerView);
       setQuizPanelVisible(playerView, false);
       if (typeof integration.emit === 'function') {
         integration.emit('quiz:close', {
@@ -1732,6 +1763,7 @@
       });
 
       ui.actions.classList.add('hidden');
+      clearQuizResultFx(playerView);
       setQuizFeedback(playerView, '', '');
       updateQuizActionButtons(playerView);
     };
@@ -1757,6 +1789,7 @@
         `${baseText} 게이지 +${refill} · 현재 ${Math.round(gaugeNow)}`,
         result.correct ? 'is-success' : 'is-fail'
       );
+      playQuizResultFx(playerView, result.correct);
       ui.actions.classList.remove('hidden');
       updateQuizActionButtons(playerView);
     };
@@ -1780,6 +1813,7 @@
         if (ui.questionImg) ui.questionImg.removeAttribute('src');
         if (ui.choices) ui.choices.innerHTML = '';
         if (ui.actions) ui.actions.classList.add('hidden');
+        clearQuizResultFx(playerView);
         setQuizFeedback(playerView, '', '');
         console.log('[JumpmapTestRuntime] requestQuizQuestion:start', {
           playerIndex: playerView.index,
