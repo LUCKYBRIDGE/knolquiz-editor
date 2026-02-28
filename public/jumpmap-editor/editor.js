@@ -11255,35 +11255,46 @@ const applyLauncherSetupToState = (setup) => {
   }
 };
 
-const maybeAutoStartJumpmapPlayMode = () => {
-  const tryLoadLaunchRuntimeMap = async () => {
-    for (const url of LAUNCH_RUNTIME_MAP_URLS) {
-      try {
-        const separator = url.includes('?') ? '&' : '?';
-        const res = await fetch(`${url}${separator}v=${Date.now()}`, { cache: 'no-store' });
-        if (!res.ok) continue;
-        const raw = await res.text();
-        const result = parseLoadedMapData(raw, state);
-        if (!result.ok) {
-          console.warn('[JumpmapPlay] runtime map parse failed', url, result.error);
-          continue;
-        }
-        if (result.warnings?.length) {
-          console.warn('[JumpmapPlay] runtime map load warnings', url, result.warnings);
-        }
-        applyLoadedPayload(result.payload, {
-          persistProfiles: true,
-          persistGroupPresets: true,
-          persistDraft: true
-        });
-        return true;
-      } catch (error) {
-        console.warn('[JumpmapPlay] runtime map fetch failed', url, error);
+const loadRuntimeBaselineMap = async (logPrefix = 'JumpmapRuntimeMap') => {
+  for (const url of LAUNCH_RUNTIME_MAP_URLS) {
+    try {
+      const separator = url.includes('?') ? '&' : '?';
+      const res = await fetch(`${url}${separator}v=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) continue;
+      const raw = await res.text();
+      const result = parseLoadedMapData(raw, state);
+      if (!result.ok) {
+        console.warn(`[${logPrefix}] runtime map parse failed`, url, result.error);
+        continue;
       }
+      if (result.warnings?.length) {
+        console.warn(`[${logPrefix}] runtime map load warnings`, url, result.warnings);
+      }
+      applyLoadedPayload(result.payload, {
+        persistProfiles: true,
+        persistGroupPresets: true,
+        persistDraft: true
+      });
+      return true;
+    } catch (error) {
+      console.warn(`[${logPrefix}] runtime map fetch failed`, url, error);
     }
-    return false;
-  };
+  }
+  return false;
+};
 
+const maybeAutoLoadEditorBaselineMap = (draftRestored) => {
+  const run = async () => {
+    if (draftRestored) return;
+    const params = new URLSearchParams(window.location.search);
+    const launchMode = params.get('launchMode');
+    if (launchMode === 'play') return;
+    await loadRuntimeBaselineMap('JumpmapEditor');
+  };
+  run();
+};
+
+const maybeAutoStartJumpmapPlayMode = () => {
   const run = async () => {
     const params = new URLSearchParams(window.location.search);
     const launchMode = params.get('launchMode');
@@ -11297,7 +11308,7 @@ const maybeAutoStartJumpmapPlayMode = () => {
     if (!(launchMode === 'play' && autoStartTest === '1')) return;
     const setup = readLauncherSetup();
     if (setup?.gameMode && setup.gameMode !== 'jumpmap') return;
-    await tryLoadLaunchRuntimeMap();
+    await loadRuntimeBaselineMap('JumpmapPlay');
     applyLauncherSetupToState(setup);
     const startPointId = typeof setup?.jumpmapStartPointId === 'string' ? setup.jumpmapStartPointId : '';
     const applyStartPointWarp = () => {
@@ -11381,6 +11392,7 @@ syncSelectedLocalSlotNameInput();
 updateLocalSlotStatus();
 syncTextureObjectControls();
 maybeAutoStartJumpmapPlayMode();
+maybeAutoLoadEditorBaselineMap(draftRestored);
 
 // Keyboard control for player 1 in test
 window.addEventListener('keydown', testRuntime.onKeyDown);

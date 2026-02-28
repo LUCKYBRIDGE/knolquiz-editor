@@ -4,12 +4,12 @@
   "indexFile": "public/jumpmap-editor/index.html",
   "summary": {
     "htmlRefCount": 9,
-    "jsRefCount": 16,
+    "jsRefCount": 18,
     "cssRefCount": 0,
     "pathPrefixHintCount": 6,
-    "scannedFileCount": 15,
-    "uniqueTargetFileCount": 19,
-    "existingTargetFileCount": 19,
+    "scannedFileCount": 16,
+    "uniqueTargetFileCount": 20,
+    "existingTargetFileCount": 20,
     "missingTargetFileCount": 0,
     "dynamicDependencyContractCount": 2,
     "dynamicDependencyFileCount": 489,
@@ -18,13 +18,13 @@
       "(no-ext)": 1,
       ".json": 2,
       ".css": 1,
-      ".js": 14,
+      ".js": 15,
       ".jpg": 1
     },
     "countsByTopLevel": {
       "public/jumpmap-editor": 11,
       "public/quiz_background": 1,
-      "public/quiz": 5,
+      "public/quiz": 6,
       "public/shared": 2
     }
   },
@@ -77,17 +77,22 @@
     {
       "file": "public/quiz/core/bank.js",
       "kind": "js",
-      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:601"
+      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:778"
     },
     {
       "file": "public/quiz/core/engine.js",
       "kind": "js",
-      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:600"
+      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:777"
     },
     {
       "file": "public/quiz/core/events.js",
       "kind": "js",
       "discoveredFrom": "public/quiz/core/engine.js:3"
+    },
+    {
+      "file": "public/quiz/core/graders/place-value-area-model.js",
+      "kind": "js",
+      "discoveredFrom": "public/quiz/core/engine.js:4"
     },
     {
       "file": "public/quiz/core/scoring.js",
@@ -102,7 +107,7 @@
     {
       "file": "public/shared/local-game-records.js",
       "kind": "js",
-      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:292"
+      "discoveredFrom": "public/jumpmap-editor/test-runtime.js:469"
     }
   ],
   "htmlRefs": [
@@ -218,14 +223,14 @@
     },
     {
       "fromFile": "public/jumpmap-editor/editor.js",
-      "line": 871,
+      "line": 874,
       "kind": "js-fetch",
       "raw": "/__jumpmap/plates.json?v=${Date.now()}",
       "skipped": "dynamic-template"
     },
     {
       "fromFile": "public/jumpmap-editor/editor.js",
-      "line": 1821,
+      "line": 1824,
       "kind": "js-string-literal",
       "raw": "./data/plates.json",
       "targetFile": "public/jumpmap-editor/data/plates.json",
@@ -234,14 +239,14 @@
     },
     {
       "fromFile": "public/jumpmap-editor/editor.js",
-      "line": 11260,
+      "line": 11263,
       "kind": "js-fetch",
       "raw": "${url}${separator}v=${Date.now()}",
       "skipped": "dynamic-template"
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 181,
+      "line": 183,
       "kind": "js-new-url",
       "raw": "./",
       "targetFile": "public/jumpmap-editor",
@@ -250,7 +255,7 @@
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 188,
+      "line": 190,
       "kind": "js-new-url",
       "raw": "./",
       "targetFile": "public/jumpmap-editor",
@@ -259,7 +264,7 @@
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 292,
+      "line": 469,
       "kind": "js-string-literal",
       "raw": "../shared/local-game-records.js",
       "targetFile": "public/shared/local-game-records.js",
@@ -268,7 +273,7 @@
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 600,
+      "line": 777,
       "kind": "js-string-literal",
       "raw": "../quiz/core/engine.js",
       "targetFile": "public/quiz/core/engine.js",
@@ -277,7 +282,7 @@
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 601,
+      "line": 778,
       "kind": "js-string-literal",
       "raw": "../quiz/core/bank.js",
       "targetFile": "public/quiz/core/bank.js",
@@ -337,6 +342,24 @@
       "targetFile": "public/quiz/core/events.js",
       "exists": true,
       "insideProject": true
+    },
+    {
+      "fromFile": "public/quiz/core/engine.js",
+      "line": 4,
+      "kind": "js-import",
+      "raw": "./graders/place-value-area-model.js",
+      "targetFile": "public/quiz/core/graders/place-value-area-model.js",
+      "exists": true,
+      "insideProject": true
+    },
+    {
+      "fromFile": "public/quiz/core/engine.js",
+      "line": 4,
+      "kind": "js-string-literal",
+      "raw": "./graders/place-value-area-model.js",
+      "targetFile": "public/quiz/core/graders/place-value-area-model.js",
+      "exists": true,
+      "insideProject": true
     }
   ],
   "cssRefs": [],
@@ -367,13 +390,13 @@
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 181,
+      "line": 183,
       "kind": "js-path-prefix",
       "raw": "./"
     },
     {
       "fromFile": "public/jumpmap-editor/test-runtime.js",
-      "line": 188,
+      "line": 190,
       "kind": "js-path-prefix",
       "raw": "./"
     }
@@ -394,6 +417,7 @@
     "public/quiz/core/bank.js",
     "public/quiz/core/engine.js",
     "public/quiz/core/events.js",
+    "public/quiz/core/graders/place-value-area-model.js",
     "public/quiz/core/scoring.js",
     "public/quiz/core/selection.js",
     "public/shared/local-game-records.js",
@@ -403,14 +427,14 @@
   "skippedRefs": [
     {
       "fromFile": "public/jumpmap-editor/editor.js",
-      "line": 871,
+      "line": 874,
       "kind": "js-fetch",
       "raw": "/__jumpmap/plates.json?v=${Date.now()}",
       "skipped": "dynamic-template"
     },
     {
       "fromFile": "public/jumpmap-editor/editor.js",
-      "line": 11260,
+      "line": 11263,
       "kind": "js-fetch",
       "raw": "${url}${separator}v=${Date.now()}",
       "skipped": "dynamic-template"
